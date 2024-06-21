@@ -15,3 +15,5 @@ If you haven't already noticed, this is unfinished, there are a lot more feature
 - The File Uploader design and implementation
 - The File Downloader design and implementation
 - A FLASHBANG! feature, that disables keyboard shortcuts, and fills the entire screen with a red or white color.
+
+Note to Myself: FOR THE LOVE OF GOD FIX YOUR CODE. AND REDUCE ITS SIZE IT IS FUCKING MASSIVE
