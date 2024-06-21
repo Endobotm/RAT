@@ -112,7 +112,6 @@ class ScreenSharingServer:
             canvas_height = self.canvas.winfo_height()
 
             if canvas_width <= 0 or canvas_height <= 0:
-                print("Canvas width or height is not valid")
                 return  # Don't attempt to resize if canvas size is not valid
 
             img_width, img_height = image.size
@@ -127,7 +126,6 @@ class ScreenSharingServer:
                 new_width = int(canvas_height * img_ratio)
 
             if new_width <= 0 or new_height <= 0:
-                print("New width or height after resizing is not valid")
                 return  # Don't attempt to resize if calculated size is not valid
 
             resized_image = image.resize((new_width, new_height), Image.LANCZOS)
