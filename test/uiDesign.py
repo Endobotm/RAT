@@ -33,17 +33,17 @@ class ScreenSharingServer:
         self.canvas = objTK.Canvas(master, bg='black')
         self.canvas.pack(fill=objTK.BOTH, expand=True)
 
-        self.start_button = objTTK.Button(master, text="Start Screen Share", command=self.start_screen_share)
-        self.start_button.pack(padx=5, pady=5)
+        self.start_button = objTTK.Button(master, text="Start Screen Share", width=22, command=self.start_screen_share)
+        self.start_button.pack(padx=5, pady=5, side=objTK.LEFT)
 
-        self.stop_button = objTTK.Button(master, text="Stop Screen Share", command=self.stop_screen_share, state=objTK.DISABLED)
-        self.stop_button.pack(padx=5, pady=5)
+        self.stop_button = objTTK.Button(master, text="Stop Screen Share", command=self.stop_screen_share, width=22, state=objTK.DISABLED)
+        self.stop_button.pack(padx=5, pady=5, side=objTK.RIGHT)
 
-        self.next_button = objTTK.Button(master, text="Next Client", command=self.next_client, state=objTK.DISABLED)
-        self.next_button.pack(padx=5, pady=5, side=objTK.LEFT)
-
-        self.prev_button = objTTK.Button(master, text="Previous Client", command=self.prev_client, state=objTK.DISABLED)
+        self.prev_button = objTTK.Button(master, text="Previous", command=self.prev_client, width=10, state=objTK.DISABLED)
         self.prev_button.pack(padx=5, pady=5, side=objTK.LEFT)
+        
+        self.next_button = objTTK.Button(master, text="Next", command=self.next_client, width=10, state=objTK.DISABLED)
+        self.next_button.pack(padx=5, pady=5, side=objTK.RIGHT)
 
         self.wait_for_connection()
 
@@ -241,6 +241,7 @@ sv_ttk.set_theme("dark")
 style = objTTK.Style()
 
 style.configure("TButton", font=normalFont)
+style.map('TButton', font=[('disabled', (family, 12, 'bold'))])
 style.layout('TNotebook.Tab', [
     ('Notebook.tab', {
         'sticky': 'nswe',
@@ -353,14 +354,12 @@ def shutDown():
             if server.server_socket is not None:
                 server.server_socket.close()
             if server.client_sockets is not [None]:
-                for sock in server.client_sockets:
-                    if sock:
-                        sock.close()
-            root.destroy()
-            
-
-
-root.bind("<Escape>", lambda _: root.destroy())
+                try:
+                    for sock in server.client_sockets:
+                        if sock:
+                            sock.close()
+                finally:
+                    root.destroy()
 
 center_widget(tabControl)
 
