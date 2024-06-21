@@ -352,8 +352,10 @@ def shutDown():
         if objMessageBox.askyesno(title="LAST WARNING", message="REALLY SURE?!"):
             if server.server_socket is not None:
                 server.server_socket.close()
-            if server.client_socket is not None:
-                server.client_socket.close()
+            if server.client_sockets is not [None]:
+                for sock in server.client_sockets:
+                    if sock:
+                        sock.close()
             root.destroy()
             
 
