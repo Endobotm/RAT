@@ -51,29 +51,39 @@ class ScreenSharingServer:
         threading.Thread(target=self.accept_connection).start()
 
     def accept_connection(self):
-        global connectionsNum, clients, client_sockets
+        global connectionsNum, clients, client_labels, client_sockets
         print("Waiting for a connection...")
         try:
             while True:
                 client_socket, address = self.server_socket.accept()
                 print(f"Connection from {address} has been established!")
+                empty_slot = None
                 for i in range(5):
                     if self.client_sockets[i] is None:
-                        self.clients[i] = address[0]
-                        self.client_sockets[i] = client_socket
-                        connectionsNum += 1
-                        update_client_labels()
-                        self.start_button.config(state=objTK.DISABLED)
-                        self.stop_button.config(state=objTK.NORMAL)
-                        if connectionsNum > 1:
-                            self.next_button.config(state=objTK.NORMAL)
-                            self.prev_button.config(state=objTK.NORMAL)
-                        threading.Thread(target=self.receive_images, args=(client_socket, i)).start()
+                        empty_slot = i
                         break
+                    elif clients[i] == "Client Disconnected":
+                        empty_slot = i
+                        break
+                if empty_slot is not None:
+                    self.clients[empty_slot] = address[0]
+                    self.client_sockets[empty_slot] = client_socket
+                    connectionsNum += 1
+                    client_labels[empty_slot].config(text=address[0])
+                    connections.config(text=f"{connectionsNum} Connections!")
+                    self.start_button.config(state=objTK.DISABLED)
+                    self.stop_button.config(state=objTK.NORMAL)
+                    if connectionsNum > 1:
+                        self.next_button.config(state=objTK.NORMAL)
+                        self.prev_button.config(state=objTK.NORMAL)
+                    threading.Thread(target=self.receive_images, args=(client_socket, empty_slot)).start()
+                else:
+                    print("No available slots for new connections.")
         except OSError as e:
             if str(e) != "[WinError 10038] An operation was attempted on something that is not a socket":
                 print(f"Error: {e}")
                 self.disconnect()
+
 
     def receive_images(self, client_socket, index):
         try:
@@ -179,10 +189,10 @@ class ScreenSharingServer:
 
 
 def update_client_labels():
-    global client_labels, connectionsNum
+    global client_labels, connectionsNum, clients
     connections.config(text=f"{connectionsNum} Connections!")
     for i in range(5):
-        client_labels[i].config(text=clients[i])
+        client_labels[i].config(text=clients[i])  # Update label text with client IP
 
 
 # Enable high DPI scaling on Windows
@@ -345,19 +355,35 @@ lb5.place(x=5, y=5)
 
 def center_widget(widget):
     widget.place(relx=0.5, rely=0.5, anchor="center")
+
 def shutDown():
-    global server
-    if objMessageBox.askyesno(title="WARNING", message="Are you sure you want to shut down? This will close the connection between client and the server? YOU WILL NOT BE ABLE TO CONNECT TO THE CLIENT AGAIN UNLESS THE CLIENT PROGRAM IS OPENED MANUALLY ALONG WITH THE SERVER"):
-        if objMessageBox.askyesno(title="LAST WARNING", message="REALLY SURE?!"):
+    if objMessageBox.askyesno(title="WARNING", message="Are you sure you want to shut down? This will close the connection between the client and the server. You will not be able to reconnect unless the client program is opened manually along with the server."):
+        if objMessageBox.askyesno(title="LAST WARNING", message="Are you really sure?!"):
             if server.server_socket is not None:
                 server.server_socket.close()
-            if server.client_sockets is not [None]:
+            if server.is_screen_sharing:
+                server.is_screen_sharing = False
+            if server.client_sockets != [None]:
                 try:
                     for sock in server.client_sockets:
-                        if sock:
+                        if sock is not None:
                             sock.close()
-                finally:
-                    root.destroy()
+                except Exception as e:
+                    print(f"Error while closing client sockets: {e}")
+            server.disconnect()
+            stop_all_threads()
+            root.destroy()
+
+def stop_all_threads():
+    for thread in threading.enumerate():
+        if thread.name != "MainThread":
+            try:
+                ctypes.pythonapi.PyThreadState_SetAsyncExc(
+                    ctypes.c_long(thread.ident),
+                    ctypes.py_object(SystemExit)
+                )
+            except Exception as e:
+                print(f"Error while stopping thread {thread.name}: {e}")
 
 center_widget(tabControl)
 
