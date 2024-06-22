@@ -319,23 +319,27 @@ connections5_label.place(x=40, y=290)
 # Remote CMD tab
 class CustomCommandPrompt:
     def __init__(self, master):
-        self.frame = objTK.Frame(master, bg="#222", bd=2, relief="solid", highlightthickness=0, borderwidth=0)
-        self.frame.place(relx=0.5, rely=0.5, anchor=objTK.CENTER, width=850, height=400)
-        smallFont = tkFont.Font(family=family, size=10, weight=tkFont.NORMAL)
-        self.output_text = objTK.Text(self.frame, wrap=objTK.WORD, state="disabled", bg="#111", fg="white", highlightthickness=0, borderwidth=0, spacing1=0, spacing2=0, spacing3=0, font=smallFont)
-        self.output_text.place(relwidth=1, relheight=0.9)
-        self.command_entry = objTTK.Entry(self.frame, font=normalFont)
-        self.command_entry.place(relx=0, rely=0.9, relwidth=1, relheight=0.1)
-        self.command_entry.bind("<Return>", self.execute_command)
+        self.frame = objTK.Frame(master, bg="#252525", bd=2, highlightthickness=0, borderwidth=0)
+        self.frame.place(relx=0.5, rely=0.5, anchor=objTK.CENTER, width=870, height=525)
 
-    def execute_command(self, event):
+        self.output_text = objTK.Text(self.frame, font=normalFont, bg="#252525", fg="#fff", state="disabled", highlightthickness=0, borderwidth=0, padx=15, pady=15)
+        self.output_text.place(relwidth=1, relheight=0.929)
+        
+        self.command_entry = objTTK.Entry(self.frame, font=normalFont)
+        self.command_entry.place(relx=0, rely=0.91, relwidth=1, relheight=0.08)
+        self.command_entry.bind("<Return>", self.display_command)
+
+    def display_command(self, event):
         command = self.command_entry.get()
-        self.output_text.config(state="normal")
-        self.output_text.insert(objTK.END, f"\n$ {command}\n")
-        # insert output logic self.output_text.insert(objTK.END, f"Directory changed to: {new_dir}\n")
-        self.command_entry.delete(0, objTK.END)
-        self.output_text.config(state="disabled")
-        self.output_text.yview_moveto(1.0)
+        if command != "":
+            self.output_text.config(state="normal")
+            self.output_text.insert(objTK.END, f"input-command>{command}\n")
+            self.output_text.insert(objTK.END, f"$ No Client Response\n")
+            self.command_entry.delete(0, objTK.END)
+            self.output_text.config(state="disabled")
+            self.output_text.yview_moveto(1.0)
+        else:
+            print("fuck you")
 
 # Instantiate the CustomCommandPrompt class
 terminal = CustomCommandPrompt(objSettingsTab1)
