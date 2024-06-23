@@ -13,6 +13,7 @@ import socket
 connectionsNum = 0
 clients = ["No Client Connected"] * 5
 client_labels = [None] * 5
+connectionNumThing = str(connectionsNum) + " Connections!"
 client_sockets = [None] * 5
 
 class ScreenSharingServer:
@@ -28,22 +29,17 @@ class ScreenSharingServer:
         self.clients = [None] * 5
         self.client_sockets = [None] * 5
         self.client_labels = [None] * 5  # List to hold references to client labels
+        self.connectionNumThing = str(connectionsNum) + " Connections!"
         self.current_client = 0
         self.is_screen_sharing = True  # Initialize the attribute
 
         self.canvas = objTK.Canvas(master, bg='black')
         self.canvas.pack(fill=objTK.BOTH, expand=True)
 
-        self.start_button = objTTK.Button(master, text="Start Screen Share", width=22, command=self.start_screen_share)
-        self.start_button.pack(padx=5, pady=5, side=objTK.LEFT)
-
-        self.stop_button = objTTK.Button(master, text="Stop Screen Share", command=self.stop_screen_share, width=22, state=objTK.DISABLED)
-        self.stop_button.pack(padx=5, pady=5, side=objTK.RIGHT)
-
-        self.prev_button = objTTK.Button(master, text="Previous", command=self.prev_client, width=10, state=objTK.DISABLED)
+        self.prev_button = objTTK.Button(master, text="Previous", command=self.prev_client, width=20, state=objTK.DISABLED)
         self.prev_button.pack(padx=5, pady=5, side=objTK.LEFT)
         
-        self.next_button = objTTK.Button(master, text="Next", command=self.next_client, width=10, state=objTK.DISABLED)
+        self.next_button = objTTK.Button(master, text="Next", command=self.next_client, width=20, state=objTK.DISABLED)
         self.next_button.pack(padx=5, pady=5, side=objTK.RIGHT)
 
         self.wait_for_connection()
@@ -79,9 +75,7 @@ class ScreenSharingServer:
                     self.clients[empty_slot] = address[0]
                     self.client_sockets[empty_slot] = client_socket
                     connectionsNum += 1
-                    self.update_client_labels(empty_slot, address[0], ipv6)  # Update client label
-                    self.start_button.config(state=objTK.DISABLED)
-                    self.stop_button.config(state=objTK.NORMAL)
+                    self.update_client_labels(empty_slot, address[0], ipv6, connectionsNum)  # Update client labe
                     if connectionsNum > 1:
                         self.next_button.config(state=objTK.NORMAL)
                         self.prev_button.config(state=objTK.NORMAL)
@@ -154,18 +148,6 @@ class ScreenSharingServer:
         except Exception as e:
             print(f"Error in updating image: {e}")
 
-    def start_screen_share(self):
-        self.is_screen_sharing = True
-        self.client_sockets[self.current_client].send("start".encode('utf-8'))
-        self.start_button.config(state=objTK.DISABLED)
-        self.stop_button.config(state=objTK.NORMAL)
-
-    def stop_screen_share(self):
-        self.is_screen_sharing = False
-        self.client_sockets[self.current_client].send("stop".encode('utf-8'))
-        self.start_button.config(state=objTK.NORMAL)
-        self.stop_button.config(state=objTK.DISABLED)
-
     def next_client(self):
         self.current_client = (self.current_client + 1) % 5
         self.update_client_view()
@@ -184,7 +166,7 @@ class ScreenSharingServer:
             self.client_sockets[index] = None
         self.clients[index] = "Client Disconnected"
         connectionsNum -= 1
-        self.update_client_labels(index, "Client Disconnected", "Client Disconnected")  # Update label to indicate disconnection
+        self.update_client_labels(index, "Client Disconnected", "Client Disconnected", connectionsNum)  # Update label to indicate disconnection
         if connectionsNum <= 1:
             self.next_button.config(state=objTK.DISABLED)
             self.prev_button.config(state=objTK.DISABLED)
@@ -195,8 +177,9 @@ class ScreenSharingServer:
                 sock.close()
         self.is_screen_sharing = False
 
-    def update_client_labels(self, index, ipv4, ipv6):
+    def update_client_labels(self, index, ipv4, ipv6, num):
         # Example implementation, adjust as per your GUI structure
+        connectionNumThing.config(text=f"{num} Connections!")
         client_labels[index].config(text=f"IPv4: {ipv4} | IPv6: {ipv6}")
 
 # Enable high DPI scaling on Windows
@@ -297,6 +280,7 @@ heading.place(x=20, y=100)
 
 connections = objTTK.Label(objHomeTab, text=str(connectionsNum) + " Connections!", font=normalFont)
 connections.place(x=20, y=140)
+connectionNumThing = connections
 
 connections1_label = objTTK.Label(objHomeTab, text=clients[0], font=normalFont)
 connections1_label.place(x=40, y=170)

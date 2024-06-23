@@ -51,12 +51,6 @@ class ScreenSharingClient:
         try:
             while True:
                 command = self.client_socket.recv(1024).decode('utf-8')
-                if command == "start":
-                    self.start_screenshot_thread()
-                    print("Started screenshot")
-                elif command == "stop":
-                    self.stop_screenshot_thread()
-                    print("Stopped screenshot")
         except Exception as e:
             print(f"Error receiving commands: {e}")
             self.client_socket.close()
@@ -65,31 +59,27 @@ class ScreenSharingClient:
         self.is_screen_sharing = True
         self.start_screenshot_thread()
 
-    def stop_screen_share(self):
-        self.is_screen_sharing = False
-
     def start_screenshot_thread(self):
-        threading.Thread(target=self.send_screenshot).start()
-
-    def stop_screenshot_thread(self):
-        self.is_screen_sharing = False
+        self.screenshot_thread = threading.Thread(target=self.send_screenshot)
+        self.screenshot_thread.start()
 
     def send_screenshot(self):
         try:
-            while self.is_screen_sharing:
-                screenshot = pyautogui.screenshot()
-                buffer = io.BytesIO()
-                screenshot.save(buffer, format='JPEG', quality=85)
-                data = buffer.getvalue()
-                size = len(data)
-                
-                self.client_socket.sendall(size.to_bytes(4, 'big'))
-                self.client_socket.sendall(data)
-
+            if self.is_screen_sharing:
+                while self.is_screen_sharing:
+                    screenshot = pyautogui.screenshot()
+                    buffer = io.BytesIO()
+                    screenshot.save(buffer, format='JPEG', quality=85)
+                    data = buffer.getvalue()
+                    size = len(data)
+                    
+                    self.client_socket.sendall(size.to_bytes(4, 'big'))
+                    self.client_socket.sendall(data)
+            else:
+                self.send_screenshot()
                 time.sleep(0.1)  # Reduce CPU usage by adding a small delay
         except Exception as e:
             print(f"Error sending screenshot: {e}")
-            self.client_socket.close()
 
 if __name__ == "__main__":
     client = ScreenSharingClient()
