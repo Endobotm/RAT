@@ -4,18 +4,74 @@ from PIL import Image
 import io
 import threading
 import time
+import platform
 
 class ScreenSharingClient:
     def __init__(self, server_ip='ENDOSPC', server_port=5001):
+        self.server_ip = server_ip
+        self.server_port = server_port
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.client_socket.connect((server_ip, server_port))
-        self.is_screen_sharing = False
+        self.is_screen_sharing = False  # Flag to control screen sharing
+        self.connect_to_server()
+
+    def connect_to_server(self):
+        try:
+            self.client_socket.connect((self.server_ip, self.server_port))
+            print("Connected to server")
+            self.send_system_info()
+            threading.Thread(target=self.receive_commands).start()
+        except Exception as e:
+            print(f"Error connecting to server: {e}")
+            self.client_socket.close()
+
+    def send_system_info(self):
+        try:
+            system_info = self.get_system_info()
+            self.client_socket.send(system_info.encode('utf-8'))
+            acknowledgment = self.client_socket.recv(1024).decode('utf-8')
+            if acknowledgment.lower() == "received":
+                print("Server received system info")
+                self.start_screen_share()  # Start screen sharing upon receiving acknowledgment
+        except Exception as e:
+            print(f"Error sending system info: {e}")
+            self.client_socket.close()
+
+    def get_system_info(self):
+        system_info = {
+            'hostname': platform.node(),
+            'system': platform.system(),
+            'release': platform.release(),
+            'version': platform.version(),
+            'machine': platform.machine(),
+            'processor': platform.processor(),
+        }
+        return str(system_info)
+
+    def receive_commands(self):
+        try:
+            while True:
+                command = self.client_socket.recv(1024).decode('utf-8')
+                if command == "start":
+                    self.start_screenshot_thread()
+                    print("Started screenshot")
+                elif command == "stop":
+                    self.stop_screenshot_thread()
+                    print("Stopped screenshot")
+        except Exception as e:
+            print(f"Error receiving commands: {e}")
+            self.client_socket.close()
 
     def start_screen_share(self):
         self.is_screen_sharing = True
-        threading.Thread(target=self.send_screenshot).start()
+        self.start_screenshot_thread()
 
     def stop_screen_share(self):
+        self.is_screen_sharing = False
+
+    def start_screenshot_thread(self):
+        threading.Thread(target=self.send_screenshot).start()
+
+    def stop_screenshot_thread(self):
         self.is_screen_sharing = False
 
     def send_screenshot(self):
@@ -27,19 +83,13 @@ class ScreenSharingClient:
                 data = buffer.getvalue()
                 size = len(data)
                 
-                try:
-                    self.client_socket.sendall(size.to_bytes(4, 'big'))
-                    self.client_socket.sendall(data)
-                except BlockingIOError:
-                    continue
+                self.client_socket.sendall(size.to_bytes(4, 'big'))
+                self.client_socket.sendall(data)
 
                 time.sleep(0.1)  # Reduce CPU usage by adding a small delay
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error sending screenshot: {e}")
             self.client_socket.close()
 
 if __name__ == "__main__":
     client = ScreenSharingClient()
-    
-    
-client.start_screen_share()

@@ -27,6 +27,7 @@ class ScreenSharingServer:
         
         self.clients = [None] * 5
         self.client_sockets = [None] * 5
+        self.client_labels = [None] * 5  # List to hold references to client labels
         self.current_client = 0
         self.is_screen_sharing = True  # Initialize the attribute
 
@@ -51,26 +52,34 @@ class ScreenSharingServer:
         threading.Thread(target=self.accept_connection).start()
 
     def accept_connection(self):
-        global connectionsNum, clients, client_labels, client_sockets
+        global connectionsNum  # Assuming connectionsNum is defined globally somewhere
         print("Waiting for a connection...")
         try:
             while True:
                 client_socket, address = self.server_socket.accept()
                 print(f"Connection from {address} has been established!")
+                
+                # Receive client info
+                client_info = client_socket.recv(1024).decode('utf-8')
+                print(f"Received client info: {client_info}")
+                client_socket.send("received".encode('utf-8'))
+                
+                # Find an empty slot for the client
                 empty_slot = None
-                for i in range(5):
-                    if self.client_sockets[i] is None:
-                        empty_slot = i
+                ipv6 = "wtf no ipv6?"
+                for addr_info in socket.getaddrinfo(address[0], None):
+                    if addr_info[0] == socket.AF_INET6:
+                        ipv6 = addr_info[4][0]
                         break
-                    elif clients[i] == "Client Disconnected":
+                for i in range(5):
+                    if self.client_sockets[i] is None or self.clients[i] == "Client Disconnected":
                         empty_slot = i
                         break
                 if empty_slot is not None:
                     self.clients[empty_slot] = address[0]
                     self.client_sockets[empty_slot] = client_socket
                     connectionsNum += 1
-                    client_labels[empty_slot].config(text=address[0])
-                    connections.config(text=f"{connectionsNum} Connections!")
+                    self.update_client_labels(empty_slot, address[0], ipv6)  # Update client label
                     self.start_button.config(state=objTK.DISABLED)
                     self.stop_button.config(state=objTK.NORMAL)
                     if connectionsNum > 1:
@@ -83,7 +92,6 @@ class ScreenSharingServer:
             if str(e) != "[WinError 10038] An operation was attempted on something that is not a socket":
                 print(f"Error: {e}")
                 self.disconnect()
-
 
     def receive_images(self, client_socket, index):
         try:
@@ -122,7 +130,7 @@ class ScreenSharingServer:
             canvas_height = self.canvas.winfo_height()
 
             if canvas_width <= 0 or canvas_height <= 0:
-                return  # Don't attempt to resize if canvas size is not valid
+                return
 
             img_width, img_height = image.size
             img_ratio = img_width / img_height
@@ -148,35 +156,35 @@ class ScreenSharingServer:
 
     def start_screen_share(self):
         self.is_screen_sharing = True
+        self.client_sockets[self.current_client].send("start".encode('utf-8'))
         self.start_button.config(state=objTK.DISABLED)
         self.stop_button.config(state=objTK.NORMAL)
 
     def stop_screen_share(self):
         self.is_screen_sharing = False
+        self.client_sockets[self.current_client].send("stop".encode('utf-8'))
         self.start_button.config(state=objTK.NORMAL)
         self.stop_button.config(state=objTK.DISABLED)
 
     def next_client(self):
-        if self.client_sockets[(self.current_client + 1) % 5]:
-            self.current_client = (self.current_client + 1) % 5
-            self.update_client_view()
+        self.current_client = (self.current_client + 1) % 5
+        self.update_client_view()
 
     def prev_client(self):
-        if self.client_sockets[(self.current_client - 1) % 5]:
-            self.current_client = (self.current_client - 1) % 5
-            self.update_client_view()
+        self.current_client = (self.current_client - 1) % 5
+        self.update_client_view()
 
     def update_client_view(self):
         print(f"Switched to client {self.current_client + 1}")
 
     def handle_client_disconnection(self, index):
         global connectionsNum, clients, client_sockets
-        if client_sockets[index]:
-            client_sockets[index].close()
-            client_sockets[index] = None
-        clients[index] = "Client Disconnected"
+        if self.client_sockets[index]:
+            self.client_sockets[index].close()
+            self.client_sockets[index] = None
+        self.clients[index] = "Client Disconnected"
         connectionsNum -= 1
-        update_client_labels()
+        self.update_client_labels(index, "Client Disconnected", "Client Disconnected")  # Update label to indicate disconnection
         if connectionsNum <= 1:
             self.next_button.config(state=objTK.DISABLED)
             self.prev_button.config(state=objTK.DISABLED)
@@ -187,13 +195,9 @@ class ScreenSharingServer:
                 sock.close()
         self.is_screen_sharing = False
 
-
-def update_client_labels():
-    global client_labels, connectionsNum, clients
-    connections.config(text=f"{connectionsNum} Connections!")
-    for i in range(5):
-        client_labels[i].config(text=clients[i])  # Update label text with client IP
-
+    def update_client_labels(self, index, ipv4, ipv6):
+        # Example implementation, adjust as per your GUI structure
+        client_labels[index].config(text=f"IPv4: {ipv4} | IPv6: {ipv6}")
 
 # Enable high DPI scaling on Windows
 try:
