@@ -43,7 +43,7 @@ class ScreenSharingClient:
             'release': platform.release(),
             'version': platform.version(),
             'machine': platform.machine(),
-            'processor': platform.processor(),
+            'processor': platform.processor()
         }
         return str(system_info)
 
