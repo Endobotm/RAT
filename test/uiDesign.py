@@ -9,6 +9,7 @@ from PIL import Image, ImageTk, UnidentifiedImageError
 import io
 import threading
 import socket
+import ast
 
 connectionsNum = 0
 clients = ["No Client Connected"] * 5
@@ -57,7 +58,11 @@ class ScreenSharingServer:
                 
                 # Receive client info
                 client_info = client_socket.recv(1024).decode('utf-8')
-                print(f"Received client info: {client_info}")
+                client_info = ast.literal_eval(client_info)
+                for key, value in client_info.items():
+                    clientInfoFrameText.config(state="normal")
+                    clientInfoFrameText.insert(objTK.END, f"{key}: {value}\n")
+                    clientInfoFrameText.config(state="disabled")
                 client_socket.send("received".encode('utf-8'))
                 
                 # Find an empty slot for the client
@@ -180,7 +185,10 @@ class ScreenSharingServer:
     def update_client_labels(self, index, ipv4, ipv6, num):
         # Example implementation, adjust as per your GUI structure
         connectionNumThing.config(text=f"{num} Connections!")
-        client_labels[index].config(text=f"IPv4: {ipv4} | IPv6: {ipv6}")
+        if ipv4 != "Client Disconnected":
+            client_labels[index].config(text=f"IPv4: {ipv4} | IPv6: {ipv6}")
+        else:
+            client_labels[index].config(text="Client Disconnected")
 
 # Enable high DPI scaling on Windows
 try:
@@ -208,6 +216,7 @@ root.resizable(width=False, height=False)
 family = "Josefin Slab"
 
 # Define fonts with different weights using bold and normal
+smallFont = tkFont.Font(family=family, size=10)
 lightFont = tkFont.Font(family=family, size=12)  # Light equivalent (use NORMAL)
 normalFont = tkFont.Font(family=family, size=12, weight=tkFont.NORMAL)  # Normal
 boldFont = tkFont.Font(family=family, size=12, weight=tkFont.BOLD)  # Bold
@@ -302,8 +311,11 @@ connections5_label = objTTK.Label(objHomeTab, text=clients[4], font=normalFont)
 client_labels[4] = connections5_label
 connections5_label.place(x=40, y=290)
 
+clientInfoFrame = objTK.Frame(objHomeTab, bg="#252525", bd=2, highlightthickness=0, borderwidth=0)
+clientInfoFrame.place(x=382,y=5, width=500, height=170)
 
-
+clientInfoFrameText = objTK.Text(clientInfoFrame, font=smallFont, bg="#252525", fg="#fff", state="disabled", highlightthickness=0, borderwidth=0, padx=5, pady=5)
+clientInfoFrameText.place(x=0,y=0, width=500, height=170)
 # Remote CMD tab
 class CustomCommandPrompt:
     def __init__(self, master):
@@ -321,7 +333,7 @@ class CustomCommandPrompt:
         command = self.command_entry.get()
         if command != "":
             self.output_text.config(state="normal")
-            self.output_text.insert(objTK.END, f"input-command>{command}\n")
+            self.output_text.insert(objTK.END, f"$ {command}\n")
             self.output_text.insert(objTK.END, f"$ No Client Response\n")
             self.command_entry.delete(0, objTK.END)
             self.output_text.config(state="disabled")

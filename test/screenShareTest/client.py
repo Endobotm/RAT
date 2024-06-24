@@ -38,12 +38,12 @@ class ScreenSharingClient:
 
     def get_system_info(self):
         system_info = {
-            'hostname': platform.node(),
-            'system': platform.system(),
-            'release': platform.release(),
-            'version': platform.version(),
-            'machine': platform.machine(),
-            'processor': platform.processor()
+            'System Name': platform.node(),
+            'System': platform.system(),
+            'OS Release': platform.release(),
+            'OS Version': platform.version(),
+            'Machine Type': platform.machine(),
+            'CPU': platform.processor()
         }
         return str(system_info)
 
