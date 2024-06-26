@@ -1,6 +1,6 @@
 # R A T
 
-## A Small Project
+## About
 
 So if you found this you are either someone from my server or you found this by searching things... you shouldn't be looking for. Anyway this is a project by me, your local dumbass, and I am trying to make a version of my previous R A T but without using discord. So it will have 2 programs, and maybe a bit more functionality.
 
@@ -15,5 +15,6 @@ If you haven't already noticed, this is unfinished, there are a lot more feature
 - The File Uploader design and implementation
 - The File Downloader design and implementation
 - A FLASHBANG! feature, that disables keyboard shortcuts, and fills the entire screen with a red or white color.
+- New Idea: Splash Screen
 
 Note to Myself: FOR THE LOVE OF GOD FIX YOUR CODE. AND REDUCE ITS SIZE IT IS FUCKING MASSIVE
