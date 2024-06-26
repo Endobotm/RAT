@@ -8,9 +8,9 @@ So if you found this you are either someone from my server or you found this by 
 
 If you haven't already noticed, this is unfinished, there are a lot more features I want to add and I will list them here, you can just see them, or if you are interested, help complete them.
 
-- IPv4, IPv6, and IPv4 Public Address viewing functionality
+- IPv4, IPv6, and IPv4 Public Address viewing functionality - DONE!
 - A Map showing the locations of each client on the globe
-- Client system information like CPU, GPU, OS, and more
+- Client system information like CPU, GPU, OS, and more - DONE!
 - The Terminal functionality, and maybe a better interface too
 - The File Uploader design and implementation
 - The File Downloader design and implementation
