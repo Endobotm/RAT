@@ -338,15 +338,12 @@ class CustomCommandPrompt:
 
     def display_command(self, event):
         command = self.command_entry.get()
-        if command != "":
-            self.output_text.config(state="normal")
-            self.output_text.insert(objTK.END, f"$ {command}\n")
-            self.output_text.insert(objTK.END, f"$ No Client Response\n")
-            self.command_entry.delete(0, objTK.END)
-            self.output_text.config(state="disabled")
-            self.output_text.yview_moveto(1.0)
-        else:
-            print("fuck you")
+        self.output_text.config(state="normal")
+        self.output_text.insert(objTK.END, f"$ {command}\n")
+        self.output_text.insert(objTK.END, f"$ No Client Response\n")
+        self.command_entry.delete(0, objTK.END)
+        self.output_text.config(state="disabled")
+        self.output_text.yview_moveto(1.0)
 
 # Instantiate the CustomCommandPrompt class
 terminal = CustomCommandPrompt(objSettingsTab1)
