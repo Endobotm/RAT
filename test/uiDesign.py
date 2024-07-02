@@ -1,10 +1,9 @@
 import tkinter as objTK
 from tkinter import ttk as objTTK
 from tkinter import messagebox as objMessageBox
-import tkinter.font as tkFont
+from tkextrafont import Font
 import sv_ttk
 import ctypes
-from pathlib import Path
 from PIL import Image, ImageTk, UnidentifiedImageError
 import io
 import threading
@@ -16,6 +15,10 @@ clients = ["No Client Connected"] * 5
 client_labels = [None] * 5
 connectionNumThing = str(connectionsNum) + " Connections!"
 client_sockets = [None] * 5
+
+# 27/06/24 Please fix the bug
+# what bug?
+# THE FONT ONE YOU DUMBASS
 
 class ScreenSharingServer:
     def __init__(self, master, host='0.0.0.0', port=5001):
@@ -29,10 +32,12 @@ class ScreenSharingServer:
         
         self.clients = [None] * 5
         self.client_sockets = [None] * 5
-        self.client_labels = [None] * 5  # List to hold references to client labels
+        self.client_labels = [None] * 5
         self.connectionNumThing = str(connectionsNum) + " Connections!"
         self.current_client = 0
-        self.is_screen_sharing = True  # Initialize the attribute
+        self.is_screen_sharing = True 
+        self.client_infos = [{}] * 5 
+        self.current_info_index = 0 
 
         self.canvas = objTK.Canvas(master, bg='black')
         self.canvas.pack(fill=objTK.BOTH, expand=True)
@@ -43,13 +48,16 @@ class ScreenSharingServer:
         self.next_button = objTTK.Button(master, text="Next", command=self.next_client, width=20, state=objTK.DISABLED)
         self.next_button.pack(padx=5, pady=5, side=objTK.RIGHT)
 
+        self.info_button = objTTK.Button(objHomeTab, text="Next Info", command=self.next_info, width=20)
+        self.info_button.place(x=390, y=155)
+
         self.wait_for_connection()
 
     def wait_for_connection(self):
         threading.Thread(target=self.accept_connection).start()
 
     def accept_connection(self):
-        global connectionsNum  # Assuming connectionsNum is defined globally somewhere
+        global connectionsNum
         print("Waiting for a connection...")
         try:
             while True:
@@ -59,10 +67,13 @@ class ScreenSharingServer:
                 # Receive client info
                 client_info = client_socket.recv(1024).decode('utf-8')
                 client_info = ast.literal_eval(client_info)
-                for key, value in client_info.items():
-                    clientInfoFrameText.config(state="normal")
-                    clientInfoFrameText.insert(objTK.END, f"{key}: {value}\n")
-                    clientInfoFrameText.config(state="disabled")
+                
+                for i in range(5):
+                    if not self.client_infos[i]:
+                        self.client_infos[i] = client_info
+                        break
+                
+                self.update_info_display()  # Update the text box with the first client's info
                 client_socket.send("received".encode('utf-8'))
                 
                 # Find an empty slot for the client
@@ -80,7 +91,7 @@ class ScreenSharingServer:
                     self.clients[empty_slot] = address[0]
                     self.client_sockets[empty_slot] = client_socket
                     connectionsNum += 1
-                    self.update_client_labels(empty_slot, address[0], ipv6, connectionsNum)  # Update client labe
+                    self.update_client_labels(empty_slot, address[0], ipv6, connectionsNum)  # Update client label
                     if connectionsNum > 1:
                         self.next_button.config(state=objTK.NORMAL)
                         self.prev_button.config(state=objTK.NORMAL)
@@ -190,37 +201,33 @@ class ScreenSharingServer:
         else:
             client_labels[index].config(text="Client Disconnected")
 
-# Enable high DPI scaling on Windows
+    def next_info(self):
+        self.current_info_index = (self.current_info_index + 1) % 5
+        self.update_info_display()
+
+    def update_info_display(self):
+        clientInfoFrameText.config(state="normal")
+        clientInfoFrameText.delete(1.0, objTK.END)
+        if self.client_infos[self.current_info_index]:
+            for key, value in self.client_infos[self.current_info_index].items():
+                clientInfoFrameText.insert(objTK.END, f"{key}: {value}\n")
+        clientInfoFrameText.config(state="disabled")
+
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
 except Exception as e:
     print(f"Failed to set DPI awareness: {e}")
 
-# Path to the font file
-font_path = Path('font.ttf')
-
-# Verify that the font file exists
-if not font_path.is_file():
-    print(f"Font file '{font_path}' does not exist.")
-    exit(1)
-
-# Load the font
-ctypes.windll.gdi32.AddFontResourceW(str(font_path))
-
 root = objTK.Tk()
 root.title("Server Side Control Panel")
 root.geometry("905x610")
 root.resizable(width=False, height=False)
+path = "font.ttf"
 
-# Specify the font family name
-family = "Josefin Slab"
-
-# Define fonts with different weights using bold and normal
-smallFont = tkFont.Font(family=family, size=10)
-lightFont = tkFont.Font(family=family, size=12)  # Light equivalent (use NORMAL)
-normalFont = tkFont.Font(family=family, size=12, weight=tkFont.NORMAL)  # Normal
-boldFont = tkFont.Font(family=family, size=12, weight=tkFont.BOLD)  # Bold
-bigGlobalFont = tkFont.Font(family=family, size=20, weight=tkFont.BOLD)  # Big Bold
+normalFont = Font(file=path, family="Montserrat", size=10)
+smallFont = Font(family="Montserrat", size=8)
+boldFont = Font(family="Montserrat Bold", size=13)
+lightFont = Font(family="Montserrat Light", size=10)
 
 def toggle_theme():
     if sv_ttk.get_theme() == "dark":
@@ -239,13 +246,13 @@ def apply_focus_style():
         focus_bg = "#FFFFFF"  # Light theme background
     
     style.map("TNotebook.Tab", focuscolor=[('!focus', focus_bg), ('focus', focus_bg)])
-    style.configure("TNotebook.Tab", font=normalFont)  # Set the font for tabs
+    style.configure("TNotebook.Tab", font=lightFont)  # Set the font for tabs
 
 sv_ttk.set_theme("dark")
 style = objTTK.Style()
 
-style.configure("TButton", font=normalFont)
-style.map('TButton', font=[('disabled', (family, 12, 'bold'))])
+style.configure("TButton", font=lightFont)
+style.map('TButton', font=[('disabled', ("Montserrat", 10, 'bold'))])
 style.layout('TNotebook.Tab', [
     ('Notebook.tab', {
         'sticky': 'nswe',
@@ -284,7 +291,7 @@ themeToggle = objTTK.Button(objHomeTab, text="Toggle theme", command=toggle_them
 themeToggle.place(x=30, y=50)
 
 # Connections
-heading = objTTK.Label(objHomeTab, text="Connections", font=bigGlobalFont)
+heading = objTTK.Label(objHomeTab, text="Connections", font=boldFont)
 heading.place(x=20, y=100)
 
 connections = objTTK.Label(objHomeTab, text=str(connectionsNum) + " Connections!", font=normalFont)
@@ -314,7 +321,7 @@ connections5_label.place(x=40, y=290)
 clientInfoFrame = objTK.Frame(objHomeTab, bg="#252525", bd=2, highlightthickness=0, borderwidth=0)
 clientInfoFrame.place(x=382,y=5, width=500, height=170)
 
-clientInfoFrameText = objTK.Text(clientInfoFrame, font=smallFont, bg="#252525", fg="#fff", state="disabled", highlightthickness=0, borderwidth=0, padx=5, pady=5)
+clientInfoFrameText = objTK.Text(clientInfoFrame, font=normalFont, bg="#252525", fg="#fff", state="disabled", highlightthickness=0, borderwidth=0, padx=5, pady=5)
 clientInfoFrameText.place(x=0,y=0, width=500, height=170)
 # Remote CMD tab
 class CustomCommandPrompt:
@@ -322,10 +329,10 @@ class CustomCommandPrompt:
         self.frame = objTK.Frame(master, bg="#252525", bd=2, highlightthickness=0, borderwidth=0)
         self.frame.place(relx=0.5, rely=0.5, anchor=objTK.CENTER, width=870, height=525)
 
-        self.output_text = objTK.Text(self.frame, font=normalFont, bg="#252525", fg="#fff", state="disabled", highlightthickness=0, borderwidth=0, padx=15, pady=15)
+        self.output_text = objTK.Text(self.frame, font=smallFont, bg="#252525", fg="#fff", state="disabled", highlightthickness=0, borderwidth=0, padx=15, pady=15)
         self.output_text.place(relwidth=1, relheight=0.929)
         
-        self.command_entry = objTTK.Entry(self.frame, font=normalFont)
+        self.command_entry = objTTK.Entry(self.frame, font=smallFont)
         self.command_entry.place(relx=0, rely=0.91, relwidth=1, relheight=0.08)
         self.command_entry.bind("<Return>", self.display_command)
 
