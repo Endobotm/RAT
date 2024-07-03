@@ -223,10 +223,11 @@ root.title("Server Side Control Panel")
 root.geometry("905x610")
 root.resizable(width=False, height=False)
 path = "font.ttf"
+path2 = "font2.ttf"
 
 normalFont = Font(file=path, family="Montserrat", size=10)
-smallFont = Font(family="Montserrat", size=8)
-boldFont = Font(family="Montserrat Bold", size=13)
+smallFont = Font(file=path2, family="Josefin Slab", size=8)
+boldFont = Font(family="Montserrat Semibold", size=15)
 lightFont = Font(family="Montserrat Light", size=10)
 
 def toggle_theme():

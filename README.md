@@ -18,3 +18,4 @@ If you haven't already noticed, this is unfinished, there are a lot more feature
 - New Idea: Splash Screen
 
 Note to Myself: FOR THE LOVE OF GOD FIX YOUR CODE. AND REDUCE ITS SIZE IT IS FUCKING MASSIVE
+"Note of the dumbasses who can't find the project": it is in the test folder, because it is still testing...
