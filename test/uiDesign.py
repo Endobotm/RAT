@@ -222,8 +222,8 @@ root = objTK.Tk()
 root.title("Server Side Control Panel")
 root.geometry("905x610")
 root.resizable(width=False, height=False)
-path = "font.ttf"
-path2 = "font2.ttf"
+path = "test/Fonts/font.ttf"
+path2 = "test/Fonts/font2.ttf"
 
 normalFont = Font(file=path, family="Montserrat", size=10)
 smallFont = Font(file=path2, family="Josefin Slab", size=8)
