@@ -9,6 +9,7 @@ import io
 import threading
 import socket
 import ast
+import sys
 
 connectionsNum = 0
 clients = ["No Client Connected"] * 5
@@ -16,7 +17,7 @@ client_labels = [None] * 5
 connectionNumThing = str(connectionsNum) + " Connections!"
 client_sockets = [None] * 5
 
-# 27/06/24 Please fix the bug
+# Please fix the bug
 # what bug?
 # THE FONT ONE YOU DUMBASS
 
@@ -42,10 +43,10 @@ class ScreenSharingServer:
         self.canvas = objTK.Canvas(master, bg='black')
         self.canvas.pack(fill=objTK.BOTH, expand=True)
 
-        self.prev_button = objTTK.Button(master, text="Previous", command=self.prev_client, width=20, state=objTK.DISABLED)
+        self.prev_button = objTTK.Button(master, text="Previous", command=self.prev_client, width=20)
         self.prev_button.pack(padx=5, pady=5, side=objTK.LEFT)
         
-        self.next_button = objTTK.Button(master, text="Next", command=self.next_client, width=20, state=objTK.DISABLED)
+        self.next_button = objTTK.Button(master, text="Next", command=self.next_client, width=20)
         self.next_button.pack(padx=5, pady=5, side=objTK.RIGHT)
 
         self.info_button = objTTK.Button(objHomeTab, text="Next Info", command=self.next_info, width=20)
@@ -92,9 +93,6 @@ class ScreenSharingServer:
                     self.client_sockets[empty_slot] = client_socket
                     connectionsNum += 1
                     self.update_client_labels(empty_slot, address[0], ipv6, connectionsNum)  # Update client label
-                    if connectionsNum > 1:
-                        self.next_button.config(state=objTK.NORMAL)
-                        self.prev_button.config(state=objTK.NORMAL)
                     threading.Thread(target=self.receive_images, args=(client_socket, empty_slot)).start()
                 else:
                     print("No available slots for new connections.")
@@ -181,11 +179,12 @@ class ScreenSharingServer:
             self.client_sockets[index].close()
             self.client_sockets[index] = None
         self.clients[index] = "Client Disconnected"
+        clientInfoFrameText.config(state="normal")
+        clientInfoFrameText.delete(1.0, objTK.END)
+        clientInfoFrameText.insert(objTK.END, f"Client Disconnected :(\n")
+        clientInfoFrameText.config(state="disabled")
         connectionsNum -= 1
         self.update_client_labels(index, "Client Disconnected", "Client Disconnected", connectionsNum)  # Update label to indicate disconnection
-        if connectionsNum <= 1:
-            self.next_button.config(state=objTK.DISABLED)
-            self.prev_button.config(state=objTK.DISABLED)
 
     def disconnect(self):
         for sock in self.client_sockets:
@@ -194,7 +193,6 @@ class ScreenSharingServer:
         self.is_screen_sharing = False
 
     def update_client_labels(self, index, ipv4, ipv6, num):
-        # Example implementation, adjust as per your GUI structure
         connectionNumThing.config(text=f"{num} Connections!")
         if ipv4 != "Client Disconnected":
             client_labels[index].config(text=f"IPv4: {ipv4} | IPv6: {ipv6}")
@@ -209,6 +207,7 @@ class ScreenSharingServer:
         clientInfoFrameText.config(state="normal")
         clientInfoFrameText.delete(1.0, objTK.END)
         if self.client_infos[self.current_info_index]:
+            clientInfoFrameText.insert(objTK.END, f"Client: {self.current_info_index + 1}\n")
             for key, value in self.client_infos[self.current_info_index].items():
                 clientInfoFrameText.insert(objTK.END, f"{key}: {value}\n")
         clientInfoFrameText.config(state="disabled")
@@ -222,12 +221,15 @@ root = objTK.Tk()
 root.title("Server Side Control Panel")
 root.geometry("905x610")
 root.resizable(width=False, height=False)
+if sys.platform == 'win32':
+    root.iconbitmap('test/Images/icon.ico') 
 path = "test/Fonts/font.ttf"
 path2 = "test/Fonts/font2.ttf"
 
 normalFont = Font(file=path, family="Montserrat", size=10)
 smallFont = Font(file=path2, family="Josefin Slab", size=8)
-boldFont = Font(family="Montserrat Semibold", size=15)
+joseFont = Font(family="Josefin Slab", size=10)
+boldFont = Font(family="Montserrat Semibold", size=20)
 lightFont = Font(family="Montserrat Light", size=10)
 
 def toggle_theme():
@@ -322,7 +324,7 @@ connections5_label.place(x=40, y=290)
 clientInfoFrame = objTK.Frame(objHomeTab, bg="#252525", bd=2, highlightthickness=0, borderwidth=0)
 clientInfoFrame.place(x=382,y=5, width=500, height=170)
 
-clientInfoFrameText = objTK.Text(clientInfoFrame, font=normalFont, bg="#252525", fg="#fff", state="disabled", highlightthickness=0, borderwidth=0, padx=5, pady=5)
+clientInfoFrameText = objTK.Text(clientInfoFrame, font=joseFont, bg="#252525", fg="#fff", state="disabled", highlightthickness=0, borderwidth=0, padx=5, pady=5)
 clientInfoFrameText.place(x=0,y=0, width=500, height=170)
 # Remote CMD tab
 class CustomCommandPrompt:
