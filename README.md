@@ -8,12 +8,11 @@ So if you found this you are either someone from my server or you found this by 
 
 If you haven't already noticed, this is unfinished, there are a lot more features I want to add and I will list them here, you can just see them, or if you are interested, help complete them.
 
-- IPv4, IPv6, and IPv4 Public Address viewing functionality - DONE! :D nvm Gonna replace with ✨LOGGER✨
-- Client system information like CPU, GPU, OS, and more - DONE! :D
-- The Terminal functionality, and maybe a better interface too - Better interface done, Testing communication :D
+- Logger - Communication DONE :D, UI pending
+- Client IPv4 and IPv6 - DONE :D
+- The Terminal - DONE :D
 - The File Uploader design and implementation
 - The File Downloader design and implementation
-- A FLASHBANG! feature, that disables keyboard shortcuts, and fills the entire screen with a red or white color. DONE! :D
+- A FLASHBANG! - DONE! :D
 
-Note to Myself: FOR THE LOVE OF GOD FIX YOUR CODE. AND REDUCE ITS SIZE IT IS FUCKING MASSIVE
-"Note of the dumbasses who can't find the project": it is in the test folder, because it is still testing...
+"Note of the idiots who can't find the project": it is in the test folder, because it is still testing...
