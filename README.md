@@ -13,6 +13,9 @@ If you haven't already noticed, this is unfinished, there are a lot more feature
 - The Terminal - DONE :D
 - The File Uploader design and implementation
 - The File Downloader design and implementation
-- A FLASHBANG! - DONE! :D
+- A FLASHBANG! - DONE :D
+- Message Client - DONE :D
+- Screen View - DONE :D
+- Screen View Controls - DONE :D
 
 "Note of the idiots who can't find the project": it is in the test folder, because it is still testing...
