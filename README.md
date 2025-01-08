@@ -11,8 +11,8 @@ If you haven't already noticed, this is unfinished, there are a lot more feature
 - Logger - Communication DONE :D, UI pending
 - Client IPv4 and IPv6 - DONE :D
 - The Terminal - DONE :D
-- The File Uploader design and implementation
-- The File Downloader design and implementation
+- The File Uploader design and implementation - DONE :D
+- The File Downloader design and implementation - DONE :D
 - A FLASHBANG! - DONE :D
 - Message Client - DONE :D
 - Screen View - DONE :D
