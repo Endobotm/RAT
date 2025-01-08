@@ -243,6 +243,8 @@ class ScreenSharingServer:
                     self.receive_command(client_socket, index)
                 elif header == b"L":  # 'L' means logger data is coming
                     self.receive_logger(client_socket, index)
+                elif header == b"F":  # 'F' means file data is coming
+                    self.receive_file(client_socket, index)
         except (ConnectionError, OSError) as e:
             print(f"Error: {e}")
             self.handle_client_disconnection(index)
@@ -336,6 +338,60 @@ class ScreenSharingServer:
                 pass
         except (ConnectionError, OSError) as e:
             print(f"Error receiving command: {e}")
+            self.handle_client_disconnection(index)
+
+    # File Shit
+    def receive_file(self, client_socket, index: int):
+        try:
+            tag = client_socket.recv(6)
+            if tag == b"fileUs":
+                objMessageBox.showinfo(
+                    title="Success", message="File Uploaded Successfully"
+                )
+            elif tag == b"fileUl":
+                objMessageBox.showerror(
+                    title="File Uploaded Failed",
+                    message="Location doesn't exist in Client System.",
+                )
+            elif tag == b"fileUp":
+                objMessageBox.showerror(
+                    title="File Upload Failed", message="Permission denied"
+                )
+            elif tag == b"fileDo":
+                subtag = client_socket.recv(8)
+                if subtag == b"incoming":
+                    objMessageBox.showinfo(
+                        title="Incoming File",
+                        message=f"A file is being sent from Client {index}",
+                    )
+                    fileNameDownload = ""
+                    fileSizeDownload = 0
+                    while (recvCharac := client_socket.recv(1).decode("utf-8")) != "|":
+                        fileNameDownload += recvCharac
+                    while (
+                        recvCharac := client_socket.recv(1).decode("utf-8")
+                    ).isdigit():
+                        fileSizeDownload = fileSizeDownload * 10 + int(recvCharac)
+                    print(f"Downloading file from Client {index}: {fileNameDownload}")
+                    downloaded_encoded_data = client_socket.recv(
+                        fileSizeDownload
+                    ).decode("utf-8")
+                    downloaded_file_data = base64.b64decode(
+                        downloaded_encoded_data.encode("ascii")
+                    )
+                    savePathDownload = os.path.join(os.getcwd(), fileNameDownload)
+                    with open(savePathDownload, "wb") as f:
+                        f.write(downloaded_file_data)
+                        objMessageBox.showinfo(
+                            title="Success", message="File Downloaded Successfully"
+                        )
+                elif subtag == "location":
+                    objMessageBox.showerror(
+                        title="Error",
+                        message=f"File not found on Client {index}",
+                    )
+        except (ConnectionError, OSError) as e:
+            print(f"Error: {e}")
             self.handle_client_disconnection(index)
 
     # THIS updates the canvas, the receive image function gives the processed data to it for this to handle.
@@ -610,6 +666,10 @@ fileEntryLabel = objTTK.Label(
 fileEntryLabel.place(x=20, y=100)
 locationClientEntry = objTTK.Entry(objSettingsTab3, font=smallFont, width=80)
 locationClientEntry.place(x=30, y=130)
+clientChosenLabel = objTTK.Label(
+    objSettingsTab3, text="Choose a Client: ", font=normalFont
+)
+clientChosenLabel.place(x=20, y=180)
 clientChosen = objTTK.Spinbox(
     objSettingsTab3,
     from_=1,
@@ -617,7 +677,7 @@ clientChosen = objTTK.Spinbox(
     exportselection=True,
     font=smallFont,
 )
-clientChosen.place(x=20, y=180)
+clientChosen.place(x=160, y=180)
 
 
 def sendFunction():
@@ -726,8 +786,49 @@ client_labels[4] = connections5_label
 connections5_label.place(x=40, y=290)
 
 # File Downloader tab
-lb5 = objTTK.Label(objSettingsTab4, text="Placeholder 4", font=normalFont)
-lb5.place(x=20, y=20)
+fileLocationLabel = objTTK.Label(
+    objSettingsTab4, text="File + File Location (C:/index.html):", font=normalFont
+)
+fileLocationLabel.place(x=20, y=20)
+fileLocation = objTTK.Entry(objSettingsTab4, font=smallFont, width=80)
+fileLocation.place(x=20, y=50)
+clientChosenDLabel = objTTK.Label(
+    objSettingsTab4, text="Choose a Client: ", font=normalFont
+)
+clientChosenDLabel.place(x=20, y=90)
+clientChosenD = objTTK.Spinbox(
+    objSettingsTab4,
+    from_=1,
+    to=5,
+    exportselection=True,
+    font=smallFont,
+)
+clientChosenD.place(x=160, y=90)
+
+
+def fetchFile():
+    if fileLocation.get() == "":
+        objMessageBox.showerror(title="Error", message="Please enter a file location!")
+        return
+    elif clientChosenD.get() == "":
+        objMessageBox.showerror(title="Error", message="Please select a client!")
+        return
+    elif server.client_sockets[int(clientChosenD.get()) - 1] is None:
+        objMessageBox.showerror(
+            title="Error", message="No client connected or has disconnected!"
+        )
+        return
+    else:
+        print("Fetching File:", fileLocation.get())
+        client = int(clientChosenD.get()) - 1
+        server.client_sockets[client].sendall("FILE".encode("utf-8"))
+        server.client_sockets[client].sendall(
+            f"fileD{fileLocation.get()}|".encode("utf-8")
+        )
+
+
+downloadButton = objTTK.Button(objSettingsTab4, text="Fetch em!", command=fetchFile)
+downloadButton.place(x=20, y=130)
 
 
 # Center the main notebook

