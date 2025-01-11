@@ -383,7 +383,6 @@ class ScreenSharingServer:
                         recvCharac := client_socket.recv(1).decode("utf-8")
                     ).isdigit():
                         fileSizeDownload = fileSizeDownload * 10 + int(recvCharac)
-                    print(f"Downloading file from Client {index}: {fileNameDownload}")
                     downloaded_encoded_data = client_socket.recv(
                         fileSizeDownload
                     ).decode("utf-8")

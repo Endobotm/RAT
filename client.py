@@ -71,9 +71,6 @@ class ScreenSharingClient:
                             ).isdigit():
                                 data_lenght = data_lenght * 10 + int(received_character)
                             break
-                        print(
-                            f"File Name: {file_name}\nLocation: {location}\nSize: {data_lenght}"
-                        )
                         encoded_data = self.socket.recv(data_lenght).decode("utf-8")
                         file_data = base64.b64decode(encoded_data.encode("ascii"))
                         if os.path.exists(location):
@@ -91,7 +88,6 @@ class ScreenSharingClient:
                             self.socket.sendall("fileUl".encode("utf-8"))
                         continue
                     elif tag == "fileD":
-                        print("File Download Request")
                         while True:
                             file = ""
                             while (
