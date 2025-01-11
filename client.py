@@ -19,7 +19,7 @@ class ScreenSharingClient:
     # The Client Brain LOL
     # All you need to know is... this works
     # ------------------------------------------------
-    def __init__(self, server_ip="ENDOSPC", port=5001):
+    def __init__(self, server_ip="0.0.0.0", port=5001):
         self.server_ip = server_ip
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
