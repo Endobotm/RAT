@@ -37,7 +37,7 @@ clients = ["No Client Connected"] * 5
 client_labels = [None] * 5
 connectionNumThing = str(connectionsNum) + " Connections!"
 client_sockets = [None] * 5
-logsClient = [None] * 5
+logsClient = [""] * 5
 
 
 # ----------------------------------------------------------------
@@ -141,7 +141,7 @@ class ScreenSharingServer:
         self.clients = [None] * 5
         self.client_sockets = [None] * 5
         self.client_labels = [None] * 5
-        self.logsClient = [None] * 5
+        self.logsClient = [""] * 5
         self.connectionNumThing = str(connectionsNum) + " Connections!"
         self.current_client = 0
         self.is_screen_sharing = True
@@ -333,6 +333,7 @@ class ScreenSharingServer:
                         logSize = logSize * 10 + int(receivedCharaLog)
                     logRecv = client_socket.recv(logSize).decode("utf-8")
                     self.logsClient[index] += logRecv
+                    print(self.logsClient)
             except UnicodeDecodeError:
                 pass
         except (ConnectionError, OSError) as e:
@@ -578,7 +579,7 @@ def toggle_theme():
 # Theme
 sv_ttk.set_theme("dark")
 style = objTTK.Style()
-# Some "MAGICAL crap" with the button and tab styles
+# Some "MAGICAL CRAP" with the button and tab styles
 style.configure("TButton", font=lightFont)
 style.map("TButton", font=[("disabled", ("Montserrat", 10, "bold"))])
 style.layout(
@@ -695,10 +696,6 @@ def sendFunction():
         )
         return
     else:
-        print("Sending File:", file_name)
-        print("File Size:", len(file_data))
-        print("Location Client:", locationClientEntry.get())
-        print("Client Chosen:", clientChosen.get())
         client = int(clientChosen.get()) - 1
         base64FileData = base64.b64encode(file_data).decode("ascii")
         server.client_sockets[client].sendall("FILE".encode("utf-8"))
@@ -746,7 +743,7 @@ def apply_focus_style():
 # Call Function
 apply_theme_to_titlebar(root)
 apply_focus_style()
-# Add crap to the tabs
+# Add things to the tabs
 # Home Tab
 themeLabel = objTTK.Label(
     objHomeTab, text="Toggle between Light and Dark theme:", font=normalFont
@@ -818,7 +815,6 @@ def fetchFile():
         )
         return
     else:
-        print("Fetching File:", fileLocation.get())
         client = int(clientChosenD.get()) - 1
         server.client_sockets[client].sendall("FILE".encode("utf-8"))
         server.client_sockets[client].sendall(

