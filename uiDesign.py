@@ -576,10 +576,10 @@ root.title("Server Side Control Panel")
 root.geometry("905x610")
 root.resizable(width=False, height=False)
 if sys.platform == "win32":
-    root.iconbitmap("test/Images/icon.ico")
-path = "test/Fonts/font.ttf"
-path2 = "test/Fonts/font2.ttf"
-path3 = "test/Fonts/font3.otf"
+    root.iconbitmap("Images/icon.ico")
+path = "Fonts/font.ttf"
+path2 = "Fonts/font2.ttf"
+path3 = "Fonts/font3.otf"
 # Fonts
 normalFont = Font(file=path, family="Montserrat", size=10)
 smallFont = Font(file=path3, family="Cascadia Mono Light", size=8)
