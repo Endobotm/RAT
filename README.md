@@ -4,18 +4,16 @@
 
 So if you found this you are either someone from my server or you found this by searching things... you shouldn't be looking for. Anyway this is a project by me, your local dumbass, and I am trying to make a version of my previous R A T but without using discord. So it will have 2 programs, and maybe a bit more functionality.
 
-## Pending Features
+## Features
 
-If you haven't already noticed, this is unfinished, there are a lot more features I want to add and I will list them here, you can just see them, or if you are interested, help complete them.
+- Key Logger
+- Client IPv4 and IPv6
+- Remote CMD
+- File Uploading and Downloading to/from Client
+- FLASHBANG! the Client
+- Message Client
+- Client Screen View
 
-- Logger - Communication DONE :D, UI pending
-- Client IPv4 and IPv6 - DONE :D
-- The Terminal - DONE :D
-- The File Uploader design and implementation - DONE :D
-- The File Downloader design and implementation - DONE :D
-- A FLASHBANG! - DONE :D
-- Message Client - DONE :D
-- Screen View - DONE :D
-- Screen View Controls - DONE :D
+## The Next Step
 
-"Note of the idiots who can't find the project": it is in the test folder, because it is still testing...
+I have implemented all the features I initially wanted to implement, and I am quite happy with how it turned out. But I think it could use more features. Why didn't I implement more features? I don't have any more ideas for features. Yea I could have implemented some features from the previous R A T like the camera interface. But thats a bit too far (as if this isn't an invasion of privacy already). But if you have any ideas for features, do let me know and I will implement them!
