@@ -564,11 +564,6 @@ class ScreenSharingServer:
         loggerOutput.yview_moveto(1.0)
 
 
-# This makes the UI more CRISP!
-try:
-    ctypes.windll.shcore.SetProcessDpiAwareness(1)
-except Exception as e:
-    print(f"Failed to set DPI awareness: {e}")
 # Tkinter crap
 root = objTK.Tk()
 root.title("Server Side Control Panel")
@@ -585,6 +580,26 @@ smallFont = Font(file=path3, family="Cascadia Mono Light", size=8)
 terminalFont = Font(family="Cascadia Mono Light", size=8)
 boldFont = Font(family="Montserrat Semibold", size=20)
 lightFont = Font(family="Montserrat Light", size=10)
+
+
+# More "consistent" dpi aware scaling
+# For anyone asking how I came up function, this function consists of bits and peices left behind by random people on forums which I stitched together into the amalgamate
+def set_dpi_aware(root):
+    try:
+        if sys.platform == "win32":
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+            ctypes.windll.user32.SetProcessDPIAware()
+        monitor_dpi = root.winfo_fpixels("1i")
+        scaling_factor = max(1.0, monitor_dpi / 96.0) * 1.7
+        root.tk.call("tk", "scaling", scaling_factor)
+        print(
+            f"DPI awareness enabled. Monitor DPI: {monitor_dpi}, Scaling factor: {scaling_factor:.2f}"
+        )
+    except Exception as e:
+        print(f"Failed to set DPI awareness: {e}")
+
+
+set_dpi_aware(root)
 
 
 # Theme toggle function
