@@ -288,4 +288,3 @@ async def main():
 if __name__ == "__main__":
     client = ScreenSharingClient()
     asyncio.run(main())
-# Hello world! I am curently testing the logger, in a minute, this should be printed out in the terminal.

