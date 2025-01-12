@@ -592,9 +592,6 @@ def set_dpi_aware(root):
         monitor_dpi = root.winfo_fpixels("1i")
         scaling_factor = max(1.0, monitor_dpi / 96.0) * 1.7
         root.tk.call("tk", "scaling", scaling_factor)
-        print(
-            f"DPI awareness enabled. Monitor DPI: {monitor_dpi}, Scaling factor: {scaling_factor:.2f}"
-        )
     except Exception as e:
         print(f"Failed to set DPI awareness: {e}")
 
@@ -612,6 +609,8 @@ def toggle_theme():
         sv_ttk.use_dark_theme()
     apply_focus_style()
     style.configure("TButton", font=normalFont)
+    style.configure("TLabelframe", borderwidth=2, relief="solid", labelmargins=20)
+    style.configure("TLabelframe.Label", font=normalFont)
 
 
 # Theme
@@ -831,16 +830,29 @@ client_labels[4] = connections5_label
 connections5_label.place(x=40, y=290)
 
 # File Downloader tab
-fileLocationLabel = objTTK.Label(
-    objSettingsTab4, text="File + File Location (C:/index.html):", font=normalFont
+fileDownloaderFrame = objTTK.LabelFrame(
+    objSettingsTab4,
+    text="Enter File Details",
+    borderwidth=5,
+    relief="solid",
+    height=160,
+    width=660,
 )
-fileLocationLabel.place(x=20, y=20)
-fileLocation = objTTK.Entry(objSettingsTab4, font=smallFont, width=80)
-fileLocation.place(x=20, y=50)
+fileDownloaderFrame.place(x=20, y=20)
+fileNameLabel = objTTK.Label(fileDownloaderFrame, text="File Name:", font=normalFont)
+fileNameLabel.place(relx=0.05, rely=-0.1)
+fileName = objTTK.Entry(fileDownloaderFrame, font=smallFont)
+fileName.place(relx=0.20, rely=-0.1, relwidth=0.75)
+fileLocationLabel = objTTK.Label(
+    fileDownloaderFrame, text="File Location:", font=normalFont
+)
+fileLocationLabel.place(relx=0.05, rely=0.4)
+fileLocation = objTTK.Entry(fileDownloaderFrame, font=smallFont, width=80)
+fileLocation.place(relx=0.235, rely=0.4, relwidth=0.715)
 clientChosenDLabel = objTTK.Label(
     objSettingsTab4, text="Choose a Client: ", font=normalFont
 )
-clientChosenDLabel.place(x=20, y=90)
+clientChosenDLabel.place(x=20, y=190)
 clientChosenD = objTTK.Spinbox(
     objSettingsTab4,
     from_=1,
@@ -848,7 +860,7 @@ clientChosenD = objTTK.Spinbox(
     exportselection=True,
     font=smallFont,
 )
-clientChosenD.place(x=160, y=90)
+clientChosenD.place(x=160, y=190)
 
 
 def fetchFile():
@@ -872,7 +884,7 @@ def fetchFile():
 
 
 downloadButton = objTTK.Button(objSettingsTab4, text="Fetch em!", command=fetchFile)
-downloadButton.place(x=20, y=130)
+downloadButton.place(x=20, y=230)
 
 
 # Center the main notebook
