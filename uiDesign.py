@@ -395,7 +395,7 @@ class ScreenSharingServer:
                         objMessageBox.showinfo(
                             title="Success", message="File Downloaded Successfully"
                         )
-                elif subtag == "location":
+                elif subtag == b"location":
                     objMessageBox.showerror(
                         title="Error",
                         message=f"File not found on Client {index}",
@@ -864,8 +864,16 @@ clientChosenD.place(x=160, y=190)
 
 
 def fetchFile():
-    if fileLocation.get() == "":
+    if fileName.get() == "":
+        objMessageBox.showerror(title="Error", message="Please enter a file name!")
+        return
+    elif fileLocation.get() == "":
         objMessageBox.showerror(title="Error", message="Please enter a file location!")
+        return
+    elif fileLocation.get().endswith(" "):
+        objMessageBox.showerror(
+            title="Error", message="File location cannot end with a space!"
+        )
         return
     elif clientChosenD.get() == "":
         objMessageBox.showerror(title="Error", message="Please select a client!")
@@ -877,10 +885,10 @@ def fetchFile():
         return
     else:
         client = int(clientChosenD.get()) - 1
+        downLocFile = fileLocation.get() + "/" + fileName.get()
+        print(downLocFile)
         server.client_sockets[client].sendall("FILE".encode("utf-8"))
-        server.client_sockets[client].sendall(
-            f"fileD{fileLocation.get()}|".encode("utf-8")
-        )
+        server.client_sockets[client].sendall(f"fileD{downLocFile}|".encode("utf-8"))
 
 
 downloadButton = objTTK.Button(objSettingsTab4, text="Fetch em!", command=fetchFile)
