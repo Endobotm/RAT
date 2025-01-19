@@ -839,8 +839,10 @@ fileDownloaderFrame = objTTK.LabelFrame(
     width=660,
 )
 fileDownloaderFrame.place(x=20, y=20)
-fileNameLabel = objTTK.Label(fileDownloaderFrame, text="File Name:", font=normalFont)
-fileNameLabel.place(relx=0.05, rely=-0.1)
+fileNameLabelDownload = objTTK.Label(
+    fileDownloaderFrame, text="File Name:", font=normalFont
+)
+fileNameLabelDownload.place(relx=0.05, rely=-0.1)
 fileName = objTTK.Entry(fileDownloaderFrame, font=smallFont)
 fileName.place(relx=0.20, rely=-0.1, relwidth=0.75)
 fileLocationLabel = objTTK.Label(
