@@ -38,8 +38,8 @@ Anyways this is a project by me, your local dumbass, and I am trying to make a v
 
 I definitely did not forget about this project for a few months...Anyways I got the opportunity to test it on an actual external PC outside my network to simulate a real-world use case. It was absolutely fucking horribe so I decided to rewrite the entire socket system. I will also being adding these features to the RAT
 
-- Paranoia
-- Detailed Client Info Fetch
+- Paranoia <-{[ TESTING PHASE ]}->
+- Detailed Client Info Fetch <-{[ TESTING PHASE ]}->
 - Redirect
 - Bluescreen
 - PermaClient
@@ -50,14 +50,12 @@ I definitely did not forget about this project for a few months...Anyways I got 
 
 I have come to find out most people have genuine authentic ass WiFi so I need to optimize this connection more and more so that the program is actually usable by humans
 
-- Chunked Sending (2000-byte slices, because idk i heard it reduces the load on your wifi and packet loss, its fucking TCP-)
-- Better Frame Headers (include the order so things don’t arrive like your marriage)
-- Connectivity Analysis (server checks your potato WiFi before streaming)
-- Pre-Buffering (tiny buffer to keep things _kinda_ smooth)
-- Latency Display (so you can cry while watching 500ms delay in real time, get better internet twin 🥀💔✌️)
-- Adaptive Buffer
-- Frame Dropping (skips old frames, shows latest one → less slideshow, more “show”... i see myself out)
-- Optional Compression (light squeeze, won’t destroy text this time...hopefully)
+- Chunked Sending (20000-byte slices, because idk i heard it reduces the load on your wifi and packet loss, its fucking TCP-) ✅
+- Better Frame Headers (include the order so things don’t arrive like your marriage) ✅
+- Connectivity Analysis (server checks your potato WiFi before streaming) ✅
+- Pre-Buffering (tiny buffer to keep things _kinda_ smooth) ✅
+- Latency Display (so you can cry while watching 60s delay in real time, get better internet twin 🥀💔✌️)
+- Adaptive Buffer ✅
 - Weak Connection Handling:
   - Warn at 5s/15s buffer delay
   - at 25s/35s the server will actively mock your WiFi and ask you to invest your money into your internet instead of fictional internet women

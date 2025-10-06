@@ -17,6 +17,7 @@ import io
 import zstandard as objCompressor
 import numpy
 from queue import Queue
+import time
 
 init()
 
@@ -38,6 +39,26 @@ def elevate():
 
 
 GLOBAL_MAX_CLIENTS = 500
+
+
+class TransferRateTracker:
+    def __init__(self):
+        self.bytes = 0
+        self.start = time.time()
+
+    def add_bytes(self, n):
+        self.bytes += n
+
+    def get_rate(self):
+        elapsed = time.time() - self.start
+        return int(self.bytes / elapsed) if elapsed > 0 else 0
+
+    def reset(self):
+        self.bytes = 0
+        self.start = time.time()
+
+
+transfer_rate = TransferRateTracker()
 
 
 class SocketManager:
@@ -63,6 +84,9 @@ class SocketManager:
         self.logIndex = 0
         self.prev_frame = [{}] * max_clients
         self.image_queue = Queue()
+        self.rate_per_client = [0] * max_clients
+        self.image_buffer = [[] for _ in range(max_clients)]
+        self.buffer_history = [[] for _ in range(max_clients)]
         # UI Elements
         self.canvas = objTK.Canvas(root, bg="black")
         self.canvas.pack(fill=objTK.BOTH, expand=True)
@@ -267,32 +291,101 @@ class SocketManager:
         except (ConnectionError, OSError):
             self.handle_client_disconnection(indexSEND, "send_with_tag()")
 
+    def buffer_algorithm(self, data, buffer_size, index, header):
+        buffer = self.image_buffer[index]
+        buffer.append(data)
+        if len(buffer) >= buffer_size:
+            while len(buffer) >= buffer_size:
+                oldest_frame = buffer.pop(0)
+                self.image_queue.put((index, oldest_frame, header))
+
     def client_data_manager(self, sock, index: int):
         while True:
             try:
                 buf = self.recv_exact(sock, index, 28)
                 if buf:
                     try:
-                        if buf:
-                            header = buf[:1].decode("utf-8")
-                            dataclass = buf[1:8].decode("utf-8")
-                            sizeR = buf[8:29].decode("utf-8")
-                            size = int(sizeR.lstrip("0") or "0")
-                            data = self.recv_exact(sock, index, size)
-                            if dataclass != "deltaWH":
-                                print(
-                                    Fore.LIGHTBLUE_EX
-                                    + f"Client: {index+1}, Header Type: {header}, Data Class: {dataclass}, Size: {size}"
+                        header = buf[:1].decode("utf-8")
+                        dataclass = buf[1:8].decode("utf-8")
+                        sizeR = buf[8:29].decode("utf-8")
+                        size = int(sizeR.lstrip("0") or "0")
+                        recv_data = self.recv_exact(sock, index, size)
+                        data = b""
+                        transfer_rate.add_bytes(size + 28)
+                        if recv_data is None:
+                            self.handle_client_disconnection(
+                                index, "client_data_manager() - recv_data is None"
+                            )
+                            break
+                        try:
+                            if recv_data[:1].decode("utf-8") == ">":
+                                recv_data = recv_data[1:]
+                                currChunk = int(
+                                    recv_data[:20].decode("utf-8").lstrip("0") or "0"
                                 )
-                                if header == "D" or header == "I":
-                                    # self.update_image(
-                                    #     index,
-                                    #     decompressor.decompress(data),
-                                    #     type=header,
-                                    # )
-                                    self.image_queue.put((index, data, header))
-                            else:
-                                print(HASH.sha256(data.encode()).hexdigest())
+                                recv_data = recv_data[20:]
+                                totalChunks = int(
+                                    recv_data[:20].decode("utf-8").lstrip("0") or "0"
+                                )
+                                recv_data = recv_data[21:]
+                                data = data + recv_data
+                                while currChunk != totalChunks:
+                                    buf = self.recv_exact(sock, index, 28)
+                                    header = buf[:1].decode("utf-8")
+                                    dataclass = buf[1:8].decode("utf-8")
+                                    sizeR = buf[8:29].decode("utf-8")
+                                    size = int(sizeR.lstrip("0") or "0")
+                                    recv_data = self.recv_exact(sock, index, size)
+                                    if recv_data[:1].decode("utf-8") == ">":
+                                        recv_data = recv_data[1:]
+                                        currChunk = int(
+                                            recv_data[:20].decode("utf-8").lstrip("0")
+                                            or "0"
+                                        )
+                                        recv_data = recv_data[20:]
+                                        totalChunks = int(
+                                            recv_data[:20].decode("utf-8").lstrip("0")
+                                            or "0"
+                                        )
+                                        recv_data = recv_data[21:]
+                                        data = data + recv_data
+                                    else:
+                                        break
+                                    print(
+                                        Fore.LIGHTBLUE_EX
+                                        + f"Client: {index+1}, Header Type: {header}, Data Class: {dataclass}, Size: {size}, Current Chunk: {currChunk}, Total Chunks: {totalChunks}, Transfer  Rate: {self.rate_per_client[index]}KB/s"
+                                    )
+                            if header == "C":
+                                data = data.decode("utf-8")
+                        except UnicodeDecodeError:
+                            print(
+                                Fore.LIGHTBLUE_EX
+                                + f"Client: {index+1}, Header Type: {header}, Data Class: {dataclass}, Size: {size}"
+                            )
+                            data = recv_data
+                        except TypeError:
+                            continue
+                        if self.rate_per_client[index] != 0 and data:
+                            frames_received_per_sec = self.rate_per_client[index] / (
+                                300 * 1024
+                            )
+                            buffer_size = int((1 / frames_received_per_sec))
+                            self.buffer_history[index].append(buffer_size)
+                            if len(self.buffer_history[index]) > 10:
+                                self.buffer_history[index].pop(0)
+                            # Use average
+                            avg_buffer_size = int(
+                                sum(self.buffer_history[index])
+                                / len(self.buffer_history[index])
+                            )
+                            if dataclass == "screenV":
+                                self.buffer_algorithm(
+                                    data, avg_buffer_size, index, header
+                                )
+                        if dataclass == "deltaWH":
+                            print(HASH.sha256(data.encode()).hexdigest())
+                        self.rate_per_client[index] = transfer_rate.get_rate()
+                        transfer_rate.reset()
                     except BlockingIOError:
                         continue
                     except (ConnectionError, OSError):

