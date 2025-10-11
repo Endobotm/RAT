@@ -87,7 +87,7 @@ class ScreenSharingClient:
                 data_bytes = dataSEND
 
             # Calculate chunking
-            chunk_size = 20000
+            chunk_size = 10000
             needs_chunking = sizeSEND > chunk_size
 
             if needs_chunking:

@@ -35,7 +35,7 @@ locationInfo = f"Latitude: {lat}\nLongitude: {long}\nRadius: {radius}"
 # In his own words: Shamelessly combined from google and other stackoverflow like sites to form a single function | https://stackoverflow.com/questions/3103178/how-to-get-the-system-info-with-python | I modified the code a "lil"
 def getSystemInfo():
     try:
-        info = f"Platform: {platform.system()}\nPlatform Release: {platform.release()}\nPlatform Version: {platform.version()}\nArchitecture: {platform.machine()}\nHostname: {socket.gethostname()}\nIP-Address: {socket.gethostbyname(socket.gethostname())}\nMAC Address: {":".join(re.findall("..", "%012x" % uuid.getnode()))}\nProcessor: {platform.processor()}\nRAM: {str(round(psutil.virtual_memory().total / (1024.0**3))) + " GB"}"
+        info = f"Platform: {platform.system()}\nPlatform Release: {platform.release()}\nPlatform Version: {platform.version()}\nArchitecture: {platform.machine()}\nHostname: {socket.gethostname()}\nIP-Address: {socket.gethostbyname(socket.gethostname())}\nMAC Address: {':'.join(re.findall('..', '%012x' % uuid.getnode()))}\nProcessor: {platform.processor()}\nRAM: {str(round(psutil.virtual_memory().total / (1024.0**3))) + ' GB'}"
         return info
     except Exception as e:
         logging.exception(e)
@@ -43,3 +43,5 @@ def getSystemInfo():
 
 systemInfo = getSystemInfo()
 # You might be sensing a pattern...Yes most of these are from stackoverflow, I wasn't kidding when I said I am your local dumbass, stackoverflow was carrying my ass throughout most of the functions.
+# what else dawg, internet? scan for open ports?
+print(f"{locationInfo}\n---\n{systemInfo}")

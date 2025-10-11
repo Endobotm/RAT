@@ -1,0 +1,17 @@
+colorama==0.4.6
+dearpygui==2.1.0
+Flask==3.1.2
+Flask_SocketIO==5.5.1
+flet==0.28.3
+mss==10.1.0
+numpy==2.3.3
+opencv_python==4.10.0.84
+opencv_python_headless==4.10.0.84
+Pillow==11.3.0
+psutil==6.0.0
+PyAutoGUI==0.9.54
+pynput==1.7.7
+pywinstyles==1.8
+sv_ttk==2.6.0
+tkextrafont==0.6.3
+zstandard==0.23.0

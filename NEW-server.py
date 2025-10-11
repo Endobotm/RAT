@@ -298,6 +298,7 @@ class SocketManager:
             while len(buffer) >= buffer_size:
                 oldest_frame = buffer.pop(0)
                 self.image_queue.put((index, oldest_frame, header))
+                time.sleep(0.1)
 
     def client_data_manager(self, sock, index: int):
         while True:
@@ -369,7 +370,7 @@ class SocketManager:
                             frames_received_per_sec = self.rate_per_client[index] / (
                                 300 * 1024
                             )
-                            buffer_size = int((1 / frames_received_per_sec))
+                            buffer_size = int((1 / frames_received_per_sec) * 1.25)
                             self.buffer_history[index].append(buffer_size)
                             if len(self.buffer_history[index]) > 10:
                                 self.buffer_history[index].pop(0)
