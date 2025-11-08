@@ -38,20 +38,6 @@ Pick one:
 
 Anyways this is a project by me, your local dumbass, and I am trying to make a version of my previous RAT but without using discord. So it will have like 2 files, and maybe a bit more functionality.
 
-<style>
-summary {
-  display: block;
-}
-summary::after {
-  margin-left: 1ch;
-  display: inline-block;
-  content: "";
-  transition: 0.2s;
-}
-details[open] > summary::after {
-  content: "";
-}
-</style>
 <details><summary><code><=[(•)]=></code></summary><code>It had way more than 2 files and functionality</code>
 </details>
 
