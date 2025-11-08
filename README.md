@@ -51,7 +51,7 @@ Anyways this is a project by me, your local dumbass, and I am trying to make a v
 | Network Info  | Client IPv4 and IPv6                 |
 | Remote CMD    | Execute commands remotely            |
 | File Transfer | Upload/Download files to/from client |
-| Flashbang     | FLASHBANG! the Client                |
+| FLASHBANG!    | Flashbang the Client                 |
 | Messaging     | Send messages to client              |
 | Screen View   | Real-time(meh) screen viewing        |
 
