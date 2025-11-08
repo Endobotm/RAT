@@ -1,8 +1,9 @@
 import socket
 
+
 def run_client():
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_ip = "127.0.0.1"  # Replace with the actual server IP
+    server_ip = "127.0.0.1"
     server_port = 8000
     client.connect((server_ip, server_port))
 
@@ -28,8 +29,9 @@ def run_client():
             msg = "ipv4 public address: hello"
             client.send(msg.encode("utf-8"))
             continue
-        
+
         if response.lower() == "all questions answered":
             print("All questions have been answered.")
+
 
 run_client()

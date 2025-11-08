@@ -5,11 +5,6 @@ import ctypes
 import threading
 import selectors
 from colorama import init, Fore, Style
-import tkinter as objTK
-from tkinter import ttk as objTTK
-from tkinter import messagebox as objMessageBox
-from tkextrafont import Font
-import sv_ttk as objTheme
 import ctypes
 import hashlib as HASH
 from PIL import Image, ImageTk, UnidentifiedImageError
@@ -18,6 +13,8 @@ import zstandard as objCompressor
 import numpy
 from queue import Queue
 import time
+import flet as ft
+import base64
 
 init()
 
@@ -38,7 +35,29 @@ def elevate():
         sys.exit()
 
 
-GLOBAL_MAX_CLIENTS = 500
+GLOBAL_MAX_CLIENTS = 20
+
+
+class FletGUI:
+    def __init__(self):
+        self.img = ft.Image(
+            src=f"Images/sandvich.png",
+            aspect_ratio=16 / 9,
+            width=800,
+            fit=ft.ImageFit.FIT_HEIGHT,
+        )
+
+    def main(self, page: ft.Page):
+        self.page = page
+        page.update()
+        page.add(self.img)
+        page.update()
+
+    def update_image(self, frame):
+        data = base64.b64encode(frame).decode("utf-8")
+        self.img.src_base64 = data
+        self.img.update()
+        self.page.update()
 
 
 class TransferRateTracker:
@@ -59,6 +78,7 @@ class TransferRateTracker:
 
 
 transfer_rate = TransferRateTracker()
+flet = FletGUI()
 
 
 class SocketManager:
@@ -87,9 +107,6 @@ class SocketManager:
         self.rate_per_client = [0] * max_clients
         self.image_buffer = [[] for _ in range(max_clients)]
         self.buffer_history = [[] for _ in range(max_clients)]
-        # UI Elements
-        self.canvas = objTK.Canvas(root, bg="black")
-        self.canvas.pack(fill=objTK.BOTH, expand=True)
         # Select Thingy idk gfys
         self.sel = selectors.DefaultSelector()
         # HAVE AT THEM LADSSSSS
@@ -439,58 +456,11 @@ class SocketManager:
     def update_image(self, index: int, image, type):
         decompressor = objCompressor.ZstdDecompressor()
         try:
-            adjusted = Image.open(io.BytesIO(decompressor.decompress(image)))
-            original_width, original_height = adjusted.size
-            aspect_ratio = original_height / original_width
-
-            new_height = int(self.canvas.winfo_width() * aspect_ratio)
-            new_size = (self.canvas.winfo_width(), new_height)
-            photo = ImageTk.PhotoImage(
-                adjusted.resize(
-                    new_size,
-                    Image.Resampling.LANCZOS,
-                )
-            )
-            self.canvas.create_image(0, 0, anchor="nw", image=photo)
-            self.canvas.img_ref = photo
-            self.prev_frame[index] = adjusted
+            processed = decompressor.decompress(image)
+            flet.update_image(processed)
         except (OSError, ConnectionError):
             self.handle_client_disconnection(index, "update_image()")
 
 
-# Tkinter crap
-root = objTK.Tk()
-root.title("Server Side Control Panel")
-root.geometry("800x450")
-# root.resizable(width=False, height=False)
-if sys.platform == "win32":
-    root.iconbitmap("Images/icon.ico")
-path = "Fonts/font.ttf"
-path2 = "Fonts/font2.ttf"
-path3 = "Fonts/font3.otf"
-# Fonts
-normalFont = Font(file=path, family="Montserrat", size=10)
-smallFont = Font(file=path3, family="Cascadia Mono Light", size=8)
-terminalFont = Font(family="Cascadia Mono Light", size=8)
-boldFont = Font(family="Montserrat Semibold", size=20)
-lightFont = Font(family="Montserrat Light", size=10)
-
-
-def set_dpi_aware():
-    try:
-        if sys.platform == "win32":
-            ctypes.windll.shcore.SetProcessDpiAwareness(1)
-            ctypes.windll.user32.SetProcessDPIAware()
-        monitor_dpi = root.winfo_fpixels("1i")
-        scaling_factor = max(1.0, monitor_dpi / 96.0) * 1.7
-        root.tk.call("tk", "scaling", scaling_factor)
-    except Exception as e:
-        print(f"Failed to set DPI awareness: {e}")
-
-
-set_dpi_aware()
-
-objTheme.set_theme("dark")
-
 SocketManager()
-root.mainloop()
+ft.app(flet.main)
